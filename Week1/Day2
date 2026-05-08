@@ -1,0 +1,254 @@
+# 🧠 Day 2 Notes — Salesforce Platform & Development Basics
+
+> **Date:** 09 May 2026 | **Week 1, Day 2**
+
+---
+
+## 1. What is the Salesforce Platform?
+
+Salesforce is not just a CRM product — it is a **full cloud application platform**.
+Businesses can use the built-in CRM apps out of the box, or build completely custom
+applications on top of the same platform.
+
+```
+Salesforce Platform = Cloud infrastructure + CRM apps + App development environment
+```
+
+Think of it like Android: the OS (platform) already exists.
+Developers build apps on top of it without touching the underlying infrastructure.
+
+---
+
+## 2. Multi-Tenant Architecture ⭐
+
+**Multi-tenant** means many customers share the same Salesforce infrastructure
+(servers, codebase, database engine), but each customer's data is completely
+isolated and private.
+
+```
+┌──────────────────────────────────────────────────┐
+│             Salesforce Infrastructure             │
+│  ┌───────────┐   ┌───────────┐   ┌─────────────┐ │
+│  │ Company A  │   │ Company B  │   │    You      │ │
+│  │  (data)   │   │  (data)   │   │   (data)    │ │
+│  └───────────┘   └───────────┘   └─────────────┘ │
+└──────────────────────────────────────────────────┘
+         All on same platform — data is isolated
+```
+
+**Why it matters:**
+- Salesforce handles all server maintenance, upgrades, and security
+- Everyone automatically gets the latest version
+- Scales with demand — no infrastructure work on your end
+- Much cheaper than running dedicated servers
+
+---
+
+## 3. Core Platform Building Blocks ⭐
+
+### App
+
+A **collection of tabs, objects, and settings** grouped for a specific business function.
+
+- Think of it as a "workspace" designed for a team or process
+- Accessed via the **App Launcher (⊞)**
+- Examples:
+  - `Sales App` → Leads, Accounts, Contacts, Opportunities
+  - `Service App` → Cases, Knowledge Articles, Contacts
+
+### Object
+
+A **database table** that stores a specific type of data.
+
+- **Standard Objects** — come built-in: `Account`, `Contact`, `Lead`, `Opportunity`, `Case`
+- **Custom Objects** — you create for specific business needs  
+  Example: A hospital creates `Patient__c` to store patient records
+
+### Tab
+
+The **UI entry point** to an Object — the clickable item in the Navigation Bar.
+
+- Without a Tab, an Object exists in the database but is hard to reach from the UI
+- Tabs are what users actually click to navigate to records
+
+**Relationship:**
+```
+App  ──contains──►  Tabs  ──each maps to──►  Object  ──stores──►  Records
+```
+
+---
+
+## 4. Task 1 — Connecting Day 1 (CRM) to Day 2 (Platform)
+
+On Day 1, we learned CRM **concepts** — Account, Contact, Opportunity as ideas.
+On Day 2, we see **how these exist on the platform**:
+
+| Day 1 CRM Concept | Day 2 Platform Reality |
+|------------------|----------------------|
+| Account | Standard Object — has its own Tab, inside the Sales App |
+| Contact | Standard Object — linked to Account via a relationship field |
+| Opportunity | Standard Object — has stages, lives inside Sales App |
+| Lead | Standard Object — converts into Account + Contact + Opportunity |
+| The whole CRM | Just **one App** (Sales App) built on the Salesforce platform |
+
+The platform can host dozens of different Apps. CRM is just one use case.
+
+---
+
+## 5. Configuration vs Coding ⭐
+
+This is the most important design decision in Salesforce development.
+
+### Configuration (Clicks / No-Code)
+
+Using Salesforce's built-in tools — **no Apex code written**.
+
+| Tool | What it does |
+|------|-------------|
+| **App Builder** | Drag-and-drop to create and customise pages |
+| **Flow Builder** | Automate business processes (send email, create record, etc.) |
+| **Object Manager** | Create custom objects, fields, relationships, validation rules |
+| **Permission Sets** | Control who can see and do what |
+
+**Examples — when to use Configuration:**
+1. A new "Region" field needs to be added to the Account object → use **Object Manager** (clicks)
+2. When an Opportunity is marked Closed Won, automatically send a congratulations email → use **Flow Builder** (clicks)
+
+### Coding (Apex + LWC)
+
+Writing actual code for logic that configuration tools cannot handle cleanly.
+
+| Language | Used for |
+|---------|---------|
+| **Apex** | Backend business logic — triggers, complex calculations, integrations |
+| **LWC** (Lightning Web Components) | Custom frontend UI using JavaScript |
+| **REST / SOAP APIs** | Connecting Salesforce to external systems |
+
+**Examples — when to use Code:**
+1. When a deal closes, calculate a tiered commission that pulls data from 5 different objects and an external tax API → use **Apex** (too complex for Flow)
+2. Build a custom interactive dashboard with animated charts not possible with standard components → use **LWC**
+
+### Decision Rule
+
+```
+Can configuration solve it cleanly and maintainably?
+    YES  →  Use Configuration  (faster, no deployment, easier to maintain)
+    NO   →  Use Code (Apex / LWC)
+```
+
+> Always default to **configuration first**. Code is for things clicks genuinely cannot do.
+
+---
+
+## 6. How Developers Extend Salesforce
+
+Salesforce gives developers a layered architecture to work within:
+
+```
+┌────────────────────────────────────────────────┐
+│         Your Custom Logic / Apps                │  ← Apex, LWC, APIs  (you work here)
+├────────────────────────────────────────────────┤
+│         Salesforce Platform Layer               │  ← Objects, Flows, Rules, Security
+├────────────────────────────────────────────────┤
+│         Salesforce Infrastructure               │  ← Servers, DB, Network  (Salesforce manages)
+└────────────────────────────────────────────────┘
+```
+
+Developers only work in the top layer. The infrastructure is fully managed by Salesforce.
+
+---
+
+## 🏗️ Task 4 — System Design: College Admission App
+
+Taking the Day 1 College Admission mapping and designing it as a proper Salesforce App:
+
+**App Name:** `College Admission App`
+
+### Objects Inside the App
+
+| Object | Type | Purpose |
+|--------|------|---------|
+| `Account` | Standard | Represents the College / University |
+| `Contact` | Standard | Admission Counsellors and Faculty |
+| `Lead` | Standard | Students who submitted an enquiry |
+| `Opportunity` | Standard | Student's active admission application |
+| `Application_Document__c` | Custom | Stores uploaded documents (marksheets, certificates) |
+
+### Tabs Visible to Users
+- Leads
+- Contacts
+- Opportunities
+- Application Documents *(custom)*
+
+### User Interaction Flow
+
+```
+1. Admin receives student enquiry  →  Lead created
+2. Counsellor opens Leads tab  →  calls student, qualifies them
+3. Lead converted  →  Contact + Account + Opportunity auto-created
+4. Opportunity moves through stages:
+       Applied → Docs Submitted → Under Review → Decision Made
+5. On "Admitted" (Closed Won)  →  Flow auto-sends welcome email  ✅
+6. On "Rejected" (Closed Lost) →  Flow auto-sends regret email   ❌
+```
+
+### Config vs Code Breakdown for This App
+
+| Requirement | Approach |
+|------------|---------|
+| Stages on Opportunity | Configuration — Object Manager |
+| Welcome/rejection email on close | Configuration — Flow Builder |
+| Page layouts for counsellors | Configuration — App Builder |
+| Document verification via external API | Code — Apex |
+| Custom interactive application tracker UI | Code — LWC |
+
+---
+
+## 📝 Evaluation Questions — Answers
+
+**1. What is an App in Salesforce?**
+
+An App is a grouped collection of tabs, objects, and settings organised for a specific
+business function. For example, the Sales App brings together Leads, Accounts, Contacts,
+and Opportunities into one workspace for the sales team.
+
+**2. What is an Object?**
+
+An Object is a database table that stores a specific type of data. Standard objects like
+Account and Contact come built-in. Custom objects can be created for business-specific
+data — for example, a `Patient__c` object in a hospital system.
+
+**3. Difference between App and Object?**
+
+An Object stores data (like a table in a database). An App is a UI container that groups
+multiple Objects together via Tabs into one workspace. An App does not store data — it
+organises how users navigate to and interact with Objects.
+
+**4. What is multi-tenant architecture?**
+
+Multiple customers share the same Salesforce servers and codebase, but their data is
+fully isolated from each other. Salesforce handles all infrastructure, upgrades, and
+scaling — customers never manage servers. This makes it cost-effective and ensures
+everyone always has the latest version automatically.
+
+**5. When should we use configuration instead of code?**
+
+Always try configuration first. If a business requirement can be solved cleanly using
+Flow Builder, Object Manager, validation rules, or App Builder — use those. Code
+(Apex/LWC) is only justified when the logic is too complex for clicks, requires external
+system integrations, or needs performance that configuration tools cannot provide.
+
+**6. How does Salesforce allow developers to extend functionality?**
+
+Salesforce provides Apex (a Java-like language) for backend custom business logic,
+LWC (Lightning Web Components) for building custom UI using JavaScript, and REST/SOAP
+APIs for integrating with external systems. All of this runs on top of the platform layer —
+developers never manage the underlying infrastructure.
+
+---
+
+## 🔗 References
+
+- [Agentforce 360 Platform Basics](https://trailhead.salesforce.com/content/learn/modules/starting_force_com)
+- [Platform Development Basics](https://trailhead.salesforce.com/content/learn/modules/platform_dev_basics)
+- [Get Started with Salesforce Development](https://trailhead.salesforce.com/content/learn/projects/get-started-with-salesforce-development)

@@ -1,1 +1,176 @@
+# 🧠 Day 1 Notes — CRM Basics & Salesforce Fundamentals
 
+> **Date:** 08 May 2026 | **Week 1, Day 1**
+
+---
+
+## 1. What is Salesforce?
+
+Salesforce is a **cloud-based CRM platform**. It gives businesses one central place
+to manage customers, track sales, handle support, and run marketing — all without
+installing any software locally.
+
+```
+Salesforce = Central hub for all customer data, interactions, and sales pipeline
+```
+
+**Key advantage:** Accessible from anywhere, automatic updates, no server management needed.
+
+---
+
+## 2. What is CRM?
+
+**CRM = Customer Relationship Management**
+
+A CRM system helps a business manage:
+- Customer details (who they are, company, contact info)
+- All interactions (calls, emails, meetings)
+- Sales pipeline (where each deal stands)
+
+**Without CRM** → scattered spreadsheets, missed follow-ups, lost context
+**With CRM** → one source of truth, better collaboration, more closed deals
+
+---
+
+## 3. Salesforce Data Model
+
+Salesforce stores data exactly like a relational database:
+
+| Salesforce Term | Equivalent | Example |
+|----------------|------------|---------|
+| **Object** | Table | `Account`, `Contact`, `Lead` |
+| **Record** | Row | "Infosys Ltd." in Account |
+| **Field** | Column | Name, Phone, Email, Industry |
+
+### Standard Objects
+
+| Object | What it represents | Example |
+|--------|--------------------|---------|
+| **Account** | A company or organisation | Infosys, TCS, Amazon |
+| **Contact** | A person at a company | HR Manager at Infosys |
+| **Lead** | A potential customer (not yet qualified) | Someone who filled a web form |
+| **Opportunity** | An active deal in progress | ₹10L software contract |
+| **Case** | A customer support request | "My login isn't working" |
+
+---
+
+## 4. Standard Business Flow ⭐
+
+This is the most critical flow to understand in Salesforce:
+
+```
+Lead  ──(qualify + convert)──►  Account + Contact + Opportunity  ──►  Closed Won ✅
+```
+
+**Step by step:**
+
+1. Someone shows interest in your product → **Lead** is created
+2. Sales team qualifies them (real prospect) → Lead is **converted**, creating:
+   - **Contact** — the person
+   - **Account** — their company
+   - **Opportunity** — the deal
+3. Opportunity moves through stages:
+   ```
+   Prospecting → Qualification → Proposal → Negotiation → Closed Won / Closed Lost
+   ```
+4. Deal won → **Customer** (Closed Won ✅)
+5. Deal lost → **Closed Lost ❌**
+
+---
+
+## 5. Lightning Experience — UI Overview
+
+Lightning Experience is Salesforce's modern interface. Key elements:
+
+| UI Element | Purpose |
+|-----------|---------|
+| **App Launcher (⊞)** | Opens all available apps (Sales, Service, etc.) |
+| **Navigation Bar** | Quick access to Objects — Accounts, Contacts, Leads |
+| **Seller Home** | Personal dashboard — tasks, deals, performance |
+| **Kanban View** | Drag-and-drop pipeline board for Opportunities |
+| **Global Search** | Instantly find any record across all Objects |
+
+**List Views vs Reports:**
+
+| Feature | List View | Report |
+|---------|-----------|--------|
+| Best for | Quick filtered record view | Deep analysis + charts |
+| Complexity | Simple | Advanced |
+| Output | Table | Table + charts + summaries |
+
+---
+
+## 6. Trailhead Playground Setup
+
+The **Trailhead Playground** is a free practice Salesforce org — completely separate
+from any real/production environment.
+
+**How to get one:**
+- Click **"Launch"** on any Trailhead module → Playground is auto-created
+
+**Installing challenge packages:**
+- Each module provides a **Package ID** starting with `04t`
+- Always copy it directly from the module page
+- Installation URL:
+  ```
+  https://YOUR-PLAYGROUND.lightning.force.com/packaging/installPackage.apexp?p0=04tXXXXXXXX
+  ```
+- Verify: `Setup → Quick Find → Installed Packages`
+
+> ⚠️ Always use Playground — NEVER a production org for training exercises.
+
+---
+
+## 7. Salesforce Developer Role
+
+A Salesforce Developer builds custom solutions on the platform:
+
+| Approach | Tools |
+|---------|-------|
+| **Low-code (Clicks)** | Flow Builder, App Builder, Process Builder |
+| **Code** | Apex (Java-like), LWC (JavaScript), REST APIs |
+
+---
+
+## 🏗️ Task 1 — Business Flow (In My Own Words)
+
+When someone shows interest in a product, they become a **Lead** in Salesforce.
+The sales team contacts them and decides if they are a real prospect.
+If yes, the Lead is **converted** — this automatically creates three records:
+a **Contact** (the person), an **Account** (their company), and an **Opportunity** (the deal).
+The team then works the Opportunity through stages until it is either **won or lost**.
+
+---
+
+## 🏗️ Task 2 — Real-World Mapping: College Admission System
+
+Applying Salesforce objects to a college admission workflow:
+
+| Salesforce Object | College Equivalent |
+|------------------|--------------------|
+| **Account** | The College / University |
+| **Contact** | Admission Counsellor or Faculty |
+| **Lead** | Student who submitted an enquiry form |
+| **Opportunity** | Student's active admission application |
+
+**Flow:**
+```
+Student submits enquiry
+    → Lead created
+    → Counsellor qualifies the student
+    → Lead converted:
+          Contact  = Student / Guardian
+          Account  = The College
+          Opportunity = Active Application
+    → Application moves through stages:
+          Enquired → Documents Submitted → Under Review → Decision
+    → Admitted ✅ (Closed Won)  |  Rejected ❌ (Closed Lost)
+```
+
+---
+
+## 🔗 References
+
+- [Salesforce CRM Module](https://trailhead.salesforce.com/content/learn/modules/salesforce-crm)
+- [Trailhead Playground Management](https://trailhead.salesforce.com/content/learn/modules/trailhead_playground_management)
+- [Salesforce Object Reference](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/)

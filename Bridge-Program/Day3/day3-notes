@@ -1,1 +1,205 @@
+# Salesforce Developer Bridge Program – Day 3
+## Validation Rules, Flows & Triggers
+
+## Overview
+
+This project demonstrates the implementation of Salesforce declarative automation using **Validation Rules** and **Record-Triggered Flows** for a Placement Management System.
+
+The objective was to understand when to use Validation Rules, Flows, or Apex Triggers and implement business requirements using Salesforce best practices.
+
+> **Key Learning:** Prefer declarative automation (Validation Rules and Flows) before using Apex whenever possible. :contentReference[oaicite:0]{index=0}
+
+---
+
+# Objectives
+
+- Understand Validation Rules, Flows, and Apex Triggers.
+- Choose the correct automation tool based on business requirements.
+- Build a Record-Triggered Flow.
+- Create Validation Rules for data quality.
+- Improve the Placement Management System using Salesforce automation.
+- Prepare for Salesforce interview questions related to automation. :contentReference[oaicite:1]{index=1}
+
+---
+
+# Concepts Learned
+
+## Validation Rule
+- Prevents invalid records from being saved.
+- Displays an error message when business rules are violated.
+- Used to maintain data quality.
+
+## Flow
+- Declarative automation tool.
+- Automates record updates, emails, approvals, and related record creation.
+- No coding required.
+
+## Apex Trigger
+- Executes custom business logic before or after database events.
+- Used only when Flow cannot satisfy complex business requirements.
+
+## Record-Triggered Flow
+- Automatically runs whenever a record is created or updated.
+- Can update records, send emails, and create related records.
+
+---
+
+# Business Scenario
+
+The Placement Management System required the following automation:
+
+1. Send an email when a student submits an application.
+2. Automatically populate the Application Date.
+3. Prevent duplicate applications.
+4. Reject applications if the student's CGPA is below the required minimum.
+5. Automatically create an Offer Letter when the Status changes to **Selected**. :contentReference[oaicite:2]{index=2}
+
+---
+
+# Solution Design
+
+| Requirement | Solution Used | Reason |
+|-------------|---------------|--------|
+| Prevent Duplicate Applications | Validation Rule | Prevent invalid records |
+| Auto-fill Application Date | Record-Triggered Flow | Automatic field update |
+| Send Email Notification | Flow | Declarative automation |
+| Reject Low CGPA | Validation Rule | Enforce business rule |
+| Create Offer Letter Record | Flow | Automatically create related records |
+
+---
+
+# Record-Triggered Flow
+
+## Flow Features
+
+- Automatically sets Application Date.
+- Sends email notification to Placement Officer.
+- Displays successful execution.
+
+## Flow Components
+
+- Start Element
+- Assignment Element
+- Email Action
+- Record-Triggered Flow
+
+---
+
+# Validation Rules Implemented
+
+## Rule 1 – Minimum CGPA
+
+**Purpose**
+
+Student CGPA must be greater than or equal to the Job's minimum CGPA.
+
+---
+
+## Rule 2 – Application Date Validation
+
+**Purpose**
+
+Application Date cannot be after the Job Closing Date.
+
+---
+
+## Rule 3 – Mandatory Fields
+
+**Purpose**
+
+Required fields cannot be left blank.
+
+These Validation Rules improve data quality and prevent incorrect records from being saved. :contentReference[oaicite:3]{index=3}
+
+---
+
+# Flow vs Trigger
+
+| Scenario | Recommended Tool |
+|----------|------------------|
+| Update Fields | Flow |
+| Create Related Record | Flow |
+| Send Email | Flow |
+| Call External REST API | Apex Trigger |
+| Complex Multi-object Logic | Apex Trigger |
+| Large Data Processing | Apex Trigger |
+
+---
+
+# Mini Project Enhancement
+
+The Placement Management System was enhanced with:
+
+- Record-Triggered Flow
+- Validation Rules
+- Automatic Email Notification
+- Automatic Offer Letter Creation
+
+---
+
+# Debugging Knowledge
+
+Learned about:
+
+- Automation recursion
+- Multiple automation conflicts
+- Avoiding repeated execution
+- Selecting the correct automation tool
+
+---
+
+# Interview Preparation
+
+Prepared answers for:
+
+- Validation Rules
+- Record-Triggered Flow
+- Before-Save vs After-Save Flow
+- Workflow vs Process Builder vs Flow
+- Flow vs Apex Trigger
+- Why Salesforce recommends Flow over Workflow Rules
+- When Apex should be preferred
+- Declarative Automation Best Practices :contentReference[oaicite:4]{index=4}
+
+---
+
+# Project Deliverables
+
+- Flow Screenshots
+- Validation Rule Formulas
+- Successful Execution Screenshots
+- GitHub Repository
+- README Documentation :contentReference[oaicite:5]{index=5}
+
+---
+
+# Learning Outcome
+
+By completing this assignment, I was able to:
+
+- Understand Salesforce declarative automation.
+- Differentiate Validation Rules, Flows, and Apex Triggers.
+- Build and test a Record-Triggered Flow.
+- Implement Validation Rules to maintain data quality.
+- Automate business processes without writing Apex.
+- Improve debugging and automation design skills.
+- Prepare for Salesforce Developer interview questions.
+
+---
+
+# Technologies Used
+
+- Salesforce
+- Flow Builder
+- Validation Rules
+- Record-Triggered Flow
+- Placement Management System
+
+---
+
+# Author
+
+**Kaligotla Sri Datta Sai Vithal**
+
+Salesforce Developer Bridge Program – Day 3
 

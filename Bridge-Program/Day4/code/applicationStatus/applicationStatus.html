@@ -1,0 +1,15 @@
+<template>
+    <lightning-card title="Application Status">
+        <div class="slds-p-around_medium">
+            <p class="slds-m-bottom_medium">
+                <strong>Status:</strong> {status}
+            </p>
+
+            <lightning-button
+                label="Apply"
+                variant="success"
+                onclick={updateStatus}>
+            </lightning-button>
+        </div>
+    </lightning-card>
+</template>

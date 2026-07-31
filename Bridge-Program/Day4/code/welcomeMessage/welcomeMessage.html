@@ -1,0 +1,15 @@
+<template>
+    <lightning-card title="Welcome Message">
+        <div class="slds-p-around_medium">
+            <lightning-button
+                label="Show Welcome"
+                variant="brand"
+                onclick={showMessage}>
+            </lightning-button>
+
+            <template lwc:if={isVisible}>
+                <p class="slds-m-top_medium">{message}</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

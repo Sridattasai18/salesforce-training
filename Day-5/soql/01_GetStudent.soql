@@ -1,0 +1,6 @@
+SELECT Id,
+       Name,
+       CGPA__c,
+       Branch__c,
+       Active_Backlogs__c
+FROM Student__c

@@ -1,0 +1,7 @@
+SELECT Id,
+       Student__r.Name,
+       Job__r.Name,
+       Status__c
+FROM Application__c
+WHERE Student__r.Name='Datta'
+AND Job__r.Name='Salesforce Developer'

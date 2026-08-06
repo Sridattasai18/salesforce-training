@@ -1,0 +1,6 @@
+SELECT Id,
+       Name,
+       Minimum_CGPA__c,
+       Eligible_Branch__c,
+       Maximum_Backlogs__c
+FROM Job__c

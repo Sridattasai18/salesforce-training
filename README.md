@@ -1,6 +1,6 @@
 # Salesforce Training - Bridge Program
 
-This repository contains the learning materials and assignments for the 7-day Bridge Program.
+This repository contains the learning materials and assignments for the Bridge Program.
 
 - **Day 1**: Introduction to Salesforce, basic navigation, and initial setup.
 - **Day 2**: Data modeling, objects, fields, and relationships.
@@ -9,3 +9,4 @@ This repository contains the learning materials and assignments for the 7-day Br
 - **Day 5**: Introduction to Apex, SOQL, and DML operations.
 - **Day 6**: Clean Trigger architecture, Trigger Context Variables, and separating business logic with Service classes.
 - **Day 7**: Bulk-Safe Business Logic with Apex, Bulkification, and processing collections efficiently.
+- **Day 8**: Asynchronous Apex — Future Methods, Queueable Apex, Queueable Chaining, Batch Apex, and Scheduled Apex.

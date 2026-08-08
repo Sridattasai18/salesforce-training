@@ -1,0 +1,37 @@
+<template>
+    <lightning-card title="Eligible Jobs" icon-name="custom:custom61">
+        <div class="slds-p-around_medium" style="position: relative; min-height: 100px;">
+            <!-- Loading State -->
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+            
+            <!-- Error State -->
+            <template lwc:elseif={error}>
+                <div class="slds-text-align_center slds-text-color_error slds-p-around_medium">
+                    <lightning-icon icon-name="utility:error" alternative-text="Error!" variant="error" size="small" class="slds-m-right_x-small"></lightning-icon>
+                    {error}
+                </div>
+            </template>
+            
+            <!-- Success State with Results -->
+            <template lwc:elseif={hasJobs}>
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <template for:each={jobs} for:item="job">
+                        <div key={job.Id} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                            <c-job-card job={job} onapply={handleApply}></c-job-card>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            
+            <!-- Empty State -->
+            <template lwc:else>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-around_large">
+                    <lightning-icon icon-name="utility:info" alternative-text="Info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                    No eligible jobs available at the moment.
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

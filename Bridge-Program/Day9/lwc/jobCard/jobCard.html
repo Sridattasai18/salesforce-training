@@ -1,0 +1,29 @@
+<template>
+    <lightning-card variant="Narrow" icon-name="custom:custom63">
+        <h3 slot="title" class="slds-text-heading_small slds-truncate" title={job.Company__c}>
+            {job.Company__c}
+        </h3>
+        
+        <div class="slds-p-horizontal_small slds-m-top_small">
+            <p class="slds-m-bottom_xx-small">
+                <strong>Salary:</strong> {job.Salary__c}
+            </p>
+            <p class="slds-m-bottom_xx-small">
+                <strong>Location:</strong> {job.Location__c}
+            </p>
+            <p class="slds-m-bottom_small">
+                <strong>Deadline:</strong> {formattedDeadline}
+            </p>
+            
+            <div class="slds-grid slds-grid_align-spread slds-m-top_medium">
+                <lightning-button label="View Details" variant="neutral"></lightning-button>
+                <lightning-button 
+                    label="Apply" 
+                    variant="brand" 
+                    onclick={handleApplyClick} 
+                    disabled={isApplying}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

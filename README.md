@@ -10,4 +10,4 @@ This repository contains the learning materials and assignments for the Bridge P
 - **Day 6**: Clean Trigger architecture, Trigger Context Variables, and separating business logic with Service classes.
 - **Day 7**: Bulk-Safe Business Logic with Apex, Bulkification, and processing collections efficiently.
 - **Day 8**: Asynchronous Apex — Future Methods, Queueable Apex, Queueable Chaining, Batch Apex, and Scheduled Apex.
-- **Day 9**: Bulk-Safe Trigger Architecture — Trigger Handler pattern, Service layer separation, bulk SOQL/DML, and context maps (`Trigger.newMap`/`Trigger.oldMap`).
+- **Day 9**: LWC Sprint — Building a Student Placement Portal using Lightning Web Components, Apex Controllers, and Service classes.

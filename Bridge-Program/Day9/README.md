@@ -1,205 +1,41 @@
-# Day 9 – Bulk-Safe Trigger Architecture
-
-## Overview
-
-Day 9 focuses on writing **enterprise-level Apex and Trigger architecture** that can safely process large volumes of data in Salesforce. The main objective is to move from **record-by-record coding** to **bulk-safe, scalable trigger design**.
-
-In this project, I implemented a clean trigger architecture using the **Trigger → Trigger Handler → Service Layer** pattern. The trigger remains lightweight, the handler manages trigger events, and the service layer contains the actual business logic. This separation makes the application easier to maintain, test, and extend.
-
-The project is based on the Placement Management System used throughout the bridge program and demonstrates how Salesforce developers build production-ready automation for student job applications.
-
----
-
-## Objectives
-
-* Understand why bulkification is necessary in Salesforce.
-* Use **Trigger.new**, **Trigger.old**, **Trigger.newMap**, and **Trigger.oldMap** correctly.
-* Collect record IDs using **Sets**.
-* Reuse queried records using **Maps**.
-* Perform **bulk SOQL** and **bulk DML** operations.
-* Detect meaningful status changes during updates.
-* Implement the **Trigger Handler Pattern**.
-* Keep business logic inside reusable **Service classes**.
-* Design automation that survives Salesforce Governor Limits.
-
----
+# Day 9 - LWC Sprint: Student Placement Portal
 
 ## Business Problem
-
-When students apply for jobs, the system must validate eligibility and update application records. If hundreds of applications are imported at once, poorly written triggers may exceed Salesforce Governor Limits.
-
-This project solves that problem by processing all application records together using collections, Maps, and bulk queries.
-
----
+The objective of this sprint is to build a modern, responsive portal for students to view and apply for jobs they are eligible for. The application process should ensure students meet strict criteria before allowing submission, preventing duplicate or invalid applications.
 
 ## Architecture
+This project follows a clean separation of concerns using Salesforce best practices:
+- **UI Layer (LWC)**: Composed of `eligibleJobs` (Parent) and `jobCard` (Child). Handles user interaction, state management, and display.
+- **Controller Layer (Apex Controller)**: `ApplicationController.cls` serves as the bridge between LWC and backend logic. It exposes methods via `@AuraEnabled`.
+- **Service Layer (Apex Service)**: `ApplicationService.cls` encapsulates all business logic, validation, and DML operations.
 
-```text
-ApplicationTrigger
-        ↓
-ApplicationTriggerHandler
-        ↓
-ApplicationService
-        ↓
-PlacementStatusService
-        ↓
-SOQL / DML
-        ↓
-Salesforce Database
-```
+## Component Hierarchy
+- `eligibleJobs` (Container/Parent)
+  - Manages data retrieval (`@wire`).
+  - Manages loading, success, empty, and error states.
+  - Listens for events from child components and coordinates imperative Apex calls.
+  - `jobCard` (Presentational/Child)
+    - Displays details for a single job.
+    - Dispatches standard custom events to notify the parent of user actions (e.g., clicking "Apply").
 
-### Responsibility of Each Layer
+## Data Flow
+1. **Load Data**: The parent component `eligibleJobs` uses the `@wire` service to call `ApplicationController.getEligibleJobs()` and load records proactively.
+2. **User Interaction**: User clicks "Apply" on a `jobCard`.
+3. **Event Bubbling**: The child component dispatches a CustomEvent (`apply`) containing the `jobId`.
+4. **Processing**: The parent component catches the event, displays a loading spinner, and invokes imperative Apex (`submitApplication`).
+5. **Business Logic**: The controller routes the call to `ApplicationService`, which validates rules and performs DML.
+6. **Refresh**: Upon success, a toast is shown, and the UI is refreshed via `refreshApex`.
 
-| Layer                     | Responsibility                                             |
-| ------------------------- | ---------------------------------------------------------- |
-| ApplicationTrigger        | Receives Salesforce trigger events                         |
-| ApplicationTriggerHandler | Routes before/after insert/update events                   |
-| ApplicationService        | Validates applications and manages business rules          |
-| PlacementStatusService    | Handles placement status updates and reusable status logic |
-| Salesforce Database       | Stores Student, Job, and Application records               |
+## Apply Workflow
+`Student Clicks Apply` → `jobCard dispatches event` → `eligibleJobs receives event` → `Imperative Apex call` → `ApplicationController.submitApplication()` → `ApplicationService` → `Application__c created` → `Toast message shown` → `UI refreshed`
 
----
+## Engineering Decisions
+- **Thick Service, Thin Controller**: Moved business validation logic (duplicate checks, CGPA, backlogs, deadline) strictly into the `ApplicationService`. This promotes code reusability (e.g., if we ever build an API or Flow to do the same thing).
+- **Graceful Error Handling**: Custom exceptions thrown by the service are caught by the controller and translated into `AuraHandledException` so they display user-friendly messages on the frontend, rather than ugly Apex stack traces.
+- **Bulkification & SOQL**: Even though the current LWC flow is single-record based, standard patterns (no DML/SOQL in loops) are respected conceptually, setting up a solid foundation.
+- **Encapsulated UI States**: Explicit state booleans (`isLoading`, `error`) are used to conditionally render parts of the HTML to guarantee a smooth UX.
 
-## Files Included
-
-```text
-Day9/
-├── README.md
-├── day-9-notes.md
-├── ApplicationTrigger.trigger
-├── ApplicationTriggerHandler.cls
-├── ApplicationService.cls
-├── PlacementStatusService.cls
-├── sample-data.md
-├── execute-anonymous.apex
-└── expected-output.md
-```
-
----
-
-## What Was Implemented
-
-### Trigger
-
-* Before Insert
-* Before Update
-* After Update
-
-### Business Logic
-
-* Student eligibility validation
-* CGPA validation
-* Backlog validation
-* Automatic application status assignment
-* Status-change detection
-* Bulk-safe processing using collections
-
-### Bulkification Techniques
-
-* **Set<Id>** for collecting unique Student and Job IDs.
-* **Map<Id, Student__c>** and **Map<Id, Job__c>** for constant-time lookup.
-* **One SOQL query per object**.
-* **One DML operation outside loops**.
-
----
-
-## Sample Business Flow
-
-```text
-Student Applies
-        ↓
-Trigger Fires
-        ↓
-Handler Executes
-        ↓
-Service Collects IDs
-        ↓
-Bulk SOQL Retrieves Students and Jobs
-        ↓
-Eligibility Validated
-        ↓
-Application Status Updated
-        ↓
-Records Saved
-```
-
----
-
-## Expected Output
-
-### Successful Application
-
-```text
-Student: Rahul
-CGPA: 8.2
-Minimum Required: 7.5
-
-Status = Applied
-
-Result:
-Application inserted successfully.
-```
-
-### Rejected Application
-
-```text
-Student: Ananya
-CGPA: 7.1
-Minimum Required: 7.5
-
-Result:
-Student CGPA is below the minimum requirement.
-```
-
-### Status Update
-
-```text
-Old Status:
-Interview Scheduled
-
-New Status:
-Selected
-
-Result:
-Selection logic executed successfully.
-```
-
----
-
-## Key Learning Outcomes
-
-* Triggers always receive **collections of records**.
-* SOQL should never be written inside loops.
-* DML should never be written inside loops.
-* Sets help remove duplicate IDs automatically.
-* Maps prevent repeated queries and improve performance.
-* Trigger.oldMap is essential for detecting real business changes.
-* Thin triggers and reusable service classes create maintainable Salesforce applications.
-* Bulk-safe design is required for production Salesforce development.
-
----
-
-## Interview Takeaways
-
-### What is bulkification?
-
-Bulkification is the process of designing Apex code so that it can process multiple records in a single transaction using collections, bulk SOQL, and bulk DML operations.
-
-### Why use a Trigger Handler?
-
-A Trigger Handler keeps triggers small and delegates business logic to separate classes, improving readability, testing, and maintainability.
-
-### Why use Maps in Apex?
-
-Maps provide fast lookup by record Id and allow previously queried records to be reused without executing additional SOQL queries.
-
-### Difference between Trigger.new and Trigger.old
-
-* **Trigger.new** contains the new version of records.
-* **Trigger.old** contains the previous version of records.
-
----
-
-## Day 9 Summary
-
-Day 9 marks the transition from writing simple Apex to writing **production-quality Salesforce code**. The most important lesson is learning to think in **collections rather than individual records**. By combining Trigger architecture, service classes, Sets, Maps, and bulk-safe patterns, the Placement Management System can now process large numbers of applications efficiently while remaining maintainable and scalable.
+## What I Learned
+- Parent-child communication in LWC is robust when following standard DOM event patterns.
+- Business logic is drastically easier to test and maintain when completely decoupled from the `@AuraEnabled` endpoints.
+- Proper error bubbling and user notification via toasts are critical for modern single-page applications.

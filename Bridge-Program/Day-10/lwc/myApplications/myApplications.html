@@ -1,0 +1,39 @@
+<template>
+    <lightning-card title="My Applications" icon-name="standard:work_order">
+        <div class="slds-p-around_medium">
+            <!-- Loading State -->
+            <template lwc:if={isLoading}>
+                <div class="slds-text-align_center">
+                    <lightning-spinner alternative-text="Loading applications" size="medium"></lightning-spinner>
+                </div>
+            </template>
+            
+            <!-- Error State -->
+            <template lwc:elseif={error}>
+                <div class="slds-text-align_center slds-text-color_error slds-p-around_medium">
+                    <lightning-icon icon-name="utility:error" variant="error" size="small"></lightning-icon>
+                    <p class="slds-m-top_small">{error}</p>
+                </div>
+            </template>
+            
+            <!-- Success State with Applications -->
+            <template lwc:elseif={hasApplications}>
+                <div class="slds-grid slds-wrap slds-gutters_small">
+                    <template for:each={applications} for:item="application">
+                        <div key={application.Id} class="slds-col slds-size_1-of-1">
+                            <c-application-card application={application}></c-application-card>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            
+            <!-- Empty State -->
+            <template lwc:else>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-around_large">
+                    <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                    <p class="slds-m-top_small">You haven't applied to any jobs yet.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

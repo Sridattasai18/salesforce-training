@@ -1,0 +1,36 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_small">
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-1">
+                    <h3 class="slds-text-heading_small slds-m-bottom_xx-small">
+                        <strong>{application.Job__r.Name}</strong>
+                    </h3>
+                </div>
+                
+                <div class="slds-col slds-size_1-of-1 slds-m-top_xx-small">
+                    <p class="slds-text-body_small slds-text-color_weak">
+                        <lightning-icon icon-name="standard:account" size="x-small" class="slds-m-right_xx-small"></lightning-icon>
+                        {application.Job__r.Company__c}
+                    </p>
+                </div>
+                
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_small">
+                    <dl class="slds-list_horizontal slds-wrap">
+                        <dt class="slds-item_label slds-text-color_weak slds-truncate">Status:</dt>
+                        <dd class="slds-item_detail slds-truncate">
+                            <lightning-badge label={application.Status__c} class={statusVariant}></lightning-badge>
+                        </dd>
+                    </dl>
+                </div>
+                
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_small">
+                    <dl class="slds-list_horizontal slds-wrap">
+                        <dt class="slds-item_label slds-text-color_weak slds-truncate">Applied:</dt>
+                        <dd class="slds-item_detail slds-truncate">{formattedDate}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

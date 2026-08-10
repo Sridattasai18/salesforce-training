@@ -1,0 +1,37 @@
+<template>
+    <lightning-card title="Student Placement Portal" icon-name="custom:custom14">
+        <div class="slds-p-around_medium">
+            <!-- Student Summary Section -->
+            <div class="slds-m-bottom_large">
+                <c-student-summary student-id={currentStudentId} refresh-signal={refreshSignal}></c-student-summary>
+            </div>
+
+            <!-- Profile Edit Form Section -->
+            <div class="slds-m-bottom_large">
+                <c-student-profile-form 
+                    student-id={currentStudentId} 
+                    onprofileupdated={handleProfileUpdate}>
+                </c-student-profile-form>
+            </div>
+
+            <!-- Two Column Layout for Jobs and Applications -->
+            <div class="slds-grid slds-wrap slds-gutters">
+                <!-- Eligible Jobs Section -->
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                    <c-eligible-jobs 
+                        student-id={currentStudentId}
+                        onapplicationcreated={handleApplicationCreated}>
+                    </c-eligible-jobs>
+                </div>
+
+                <!-- My Applications Section -->
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                    <c-my-applications 
+                        student-id={currentStudentId}
+                        refresh-signal={applicationRefreshSignal}>
+                    </c-my-applications>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,31 @@
+<template>
+    <lightning-card title="My Profile" icon-name="standard:user">
+        <div class="slds-p-around_medium">
+            <template lwc:if={studentId}>
+                <lightning-record-view-form record-id={studentId} object-api-name="Student__c">
+                    <div class="slds-grid slds-wrap slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-output-field field-name="Name"></lightning-output-field>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-output-field field-name="Email__c"></lightning-output-field>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-output-field field-name="Department__c"></lightning-output-field>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-output-field field-name="CGPA__c"></lightning-output-field>
+                        </div>
+                    </div>
+                </lightning-record-view-form>
+            </template>
+            
+            <template lwc:else>
+                <div class="slds-text-align_center slds-text-color_weak">
+                    <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                    <p>No student profile found.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

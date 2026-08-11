@@ -11,3 +11,5 @@ This repository contains the learning materials and assignments for the Bridge P
 - **Day 7**: Bulk-Safe Business Logic with Apex, Bulkification, and processing collections efficiently.
 - **Day 8**: Asynchronous Apex — Future Methods, Queueable Apex, Queueable Chaining, Batch Apex, and Scheduled Apex.
 - **Day 9**: LWC Sprint — Building a Student Placement Portal using Lightning Web Components, Apex Controllers, and Service classes.
+- **Day 10**: Multi-Component Communication & Coordination — Parent-child communication, LWC events, Lightning Data Service, and component composition patterns.
+- **Day 11**: REST API Integration — HTTP Callouts, Named Credentials, Queueable Apex for external system integration, and Integration Logging for production-grade external API synchronization.

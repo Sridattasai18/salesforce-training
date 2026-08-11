@@ -1,227 +1,159 @@
-# Day 11 Notes – REST APIs, Callouts, and External Integration
+# Day 11 Notes – Talking to the Outside World
 
-## Core Concepts
+## What We're Building Today
 
-### 1. REST API Fundamentals
+Remember how all our code so far has stayed inside Salesforce? Today we're breaking out! We're going to teach Salesforce how to talk to external systems. When a student gets selected for a job, we'll automatically notify an external recruitment system.
 
-**What is REST?**
-- REpresentational State Transfer
-- Architectural style for web services
-- Uses HTTP methods (GET, POST, PUT, DELETE)
-- Stateless communication
-- Resource-based (URLs represent resources)
+Think of it like this: your Salesforce is making a phone call to another system. 📞
 
-**HTTP Methods:**
-- **GET** - Retrieve data
-- **POST** - Create new resource
-- **PUT** - Update existing resource
-- **DELETE** - Remove resource
-- **PATCH** - Partial update
+## REST APIs - The Basics
 
-**HTTP Status Codes:**
-- **2xx** - Success (200 OK, 201 Created)
-- **3xx** - Redirection
-- **4xx** - Client Error (400 Bad Request, 404 Not Found)
-- **5xx** - Server Error (500 Internal Server Error)
+REST is just a fancy way of saying "websites talking to each other". You've actually used REST APIs before without knowing it - every time you use a mobile app that fetches data from a server, that's a REST API in action.
 
-### 2. Salesforce HTTP Callouts
+**The Main Actions (HTTP Methods):**
+- **GET** - "Hey, give me some data" (like viewing a webpage)
+- **POST** - "Here's new data, save it" (like submitting a form)
+- **PUT** - "Update this existing data"
+- **DELETE** - "Remove this data"
 
-**HttpRequest Class**
+**Response Codes (What the server tells you back):**
+- **200 OK** - "Got it, everything worked!"
+- **201 Created** - "Done! I created the new thing you asked for"
+- **400 Bad Request** - "Umm, your request doesn't make sense"
+- **404 Not Found** - "Can't find what you're looking for"
+- **500 Server Error** - "Oops, something broke on my end"
+
+## Making HTTP Calls from Salesforce
+
+Salesforce has built-in classes to make HTTP requests. It's actually pretty straightforward:
+
 ```apex
+// Step 1: Create a request
 HttpRequest req = new HttpRequest();
 req.setEndpoint('https://api.example.com/resource');
 req.setMethod('POST');
 req.setHeader('Content-Type', 'application/json');
-req.setBody('{"key": "value"}');
-```
+req.setBody('{"name": "John Doe"}');
 
-**HttpResponse Class**
-```apex
+// Step 2: Send it
 Http http = new Http();
 HttpResponse res = http.send(req);
 
-Integer statusCode = res.getStatusCode();
-String body = res.getBody();
+// Step 3: Check what came back
+Integer statusCode = res.getStatusCode();  // 200, 404, etc.
+String body = res.getBody();  // The actual response data
 ```
 
-**Governor Limits:**
-- 100 HTTP callouts per transaction
-- 120 seconds total timeout
-- 12MB max request size
-- 12MB max response size
+**Important Limits to Know:**
+- You can make 100 HTTP calls per transaction (that's actually a lot!)
+- Each call can take up to 120 seconds max
+- Request/response size limit: 12 MB (huge!)
 
-### 3. Named Credentials
+Don't worry about hitting these limits - they're pretty generous for most use cases.
 
-**Benefits:**
-- Centralized credential storage
-- No hardcoded URLs or API keys
-- Environment-independent code
-- Automatic credential injection
-- Easy sandbox → production migration
+## Named Credentials - Your Secret Weapon
 
-**Usage:**
+Here's the deal: you should NEVER hardcode API URLs or passwords in your code. Ever. That's like writing your bank password on a sticky note.
+
+Instead, Salesforce has Named Credentials - a secure place to store all that sensitive stuff.
+
+**Without Named Credentials (BAD):**
 ```apex
-// Instead of:
-req.setEndpoint('https://api.example.com/posts');
-
-// Use:
-req.setEndpoint('callout:Named_Credential/posts');
+req.setEndpoint('https://api.example.com');
+req.setHeader('Authorization', 'Bearer abc123secrettoken');  // 😱 NO!
 ```
 
-**Authentication Types:**
-- OAuth 2.0
-- Basic Authentication
-- JWT
-- AWS Signature v4
-- Custom (via Apex)
-
-### 4. Queueable Apex
-
-**Purpose:**
-- Run long-running operations asynchronously
-- Make HTTP callouts outside user transaction
-- Process large data volumes
-- Avoid blocking UI
-
-**Implementation:**
+**With Named Credentials (GOOD):**
 ```apex
-public class MyJob implements Queueable, Database.AllowsCallouts {
+req.setEndpoint('callout:My_API/resource');  // 👍 Salesforce handles auth automatically
+```
+
+**Why this is awesome:**
+1. No secrets in your code
+2. Easy to change URLs without touching code
+3. Different credentials for sandbox vs production (no code changes!)
+4. Salesforce handles authentication for you
+5. Works with OAuth, JWT, Basic Auth, whatever you need
+
+## Queueable Apex - Why We Need It
+
+Here's a problem: triggers can't make HTTP calls directly. Why? Because HTTP calls take time, and we don't want to make users wait while staring at a loading screen.
+
+Solution: **Queueable Apex** - it's like saying "hey Salesforce, run this later in the background".
+
+```apex
+public class MyBackgroundJob implements Queueable, Database.AllowsCallouts {
     public void execute(QueueableContext context) {
-        // Your async logic + callouts
+        // Do your HTTP callout here
+        // User isn't waiting - this runs in the background
     }
 }
 
-// Enqueue:
-System.enqueueJob(new MyJob());
+// Start the background job
+System.enqueueJob(new MyBackgroundJob());
 ```
 
-**Key Features:**
-- Monitoring via Apex Jobs
-- Can chain other queueable jobs (50 max)
-- Passes complex data types (objects, lists)
-- Better than @future methods
+**Why Queueable instead of @future?**
+- Can pass actual objects (not just primitive types)
+- Better monitoring - you can see it in Setup → Apex Jobs
+- Can chain jobs together if needed
+- More flexible overall
 
-**Governor Limits:**
-- 50 queueable jobs per transaction
-- Same Apex limits as synchronous (but separate context)
-- Can make callouts (unlike regular Apex)
+I used @future before and honestly, Queueable is just... better. Trust me.
 
-### 5. Trigger Handler Pattern
+## The Trigger Handler Pattern
 
-**Bad Practice:**
+You know how putting business logic directly in triggers is messy? Yeah, we learned that lesson. Here's the clean way:
+
+**The Messy Way (Don't do this):**
 ```apex
 trigger ApplicationTrigger on Application__c (after update) {
-    // Business logic directly in trigger
-    for (Application__c app : Trigger.new) {
-        // 50 lines of code...
-    }
+    // 100 lines of business logic here... 😢
 }
 ```
 
-**Good Practice:**
+**The Clean Way (Do this):**
 ```apex
 trigger ApplicationTrigger on Application__c (after update) {
     ApplicationTriggerHandler.handleAfterUpdate(Trigger.new, Trigger.oldMap);
 }
 ```
 
-**Benefits:**
-- Testable (pure Apex class)
-- Reusable logic
-- Easier debugging
-- Cleaner code organization
-- Avoids "logic-ful triggers"
+Now all your logic lives in a regular Apex class that you can test, debug, and maintain easily. The trigger is just a tiny entry point.
 
-### 6. Integration Patterns
+## How Everything Fits Together Today
 
-**Fire and Forget:**
-- Send request, don't wait for response
-- Use for non-critical updates
-- Logged for auditing
+Here's the flow we built:
 
-**Request-Response:**
-- Send request, process response
-- Validate data returned
-- Handle errors immediately
-
-**Batch Integration:**
-- Collect multiple records
-- Send in single API call
-- More efficient than record-by-record
-
-**Event-Driven:**
-- External system calls Salesforce
-- Platform Events for real-time sync
-- Webhook endpoints
-
-### 7. Error Handling Strategies
-
-**Try-Catch Pattern:**
-```apex
-try {
-    HttpResponse res = http.send(req);
-    // Process response
-} catch (CalloutException e) {
-    // Log error
-    System.debug('Callout failed: ' + e.getMessage());
-}
+```
+1. User changes Application Status to "Selected"
+   ↓
+2. Trigger fires (ApplicationTrigger)
+   ↓
+3. Handler checks what changed (ApplicationTriggerHandler)
+   ↓
+4. Starts background job (CandidateSyncJob)
+   ↓
+5. Makes the actual API call (ExternalPlacementService)
+   ↓
+6. Logs what happened (Integration_Log__c)
 ```
 
-**Logging:**
-- Store request/response for debugging
-- Track success/failure rates
-- Enable support team to investigate
+**Why this many layers?**
+Each piece has ONE job:
+- **Trigger** → Just fires, no logic
+- **Handler** → Figures out what changed
+- **Queueable** → Enables background + HTTP calls
+- **Service** → Does the actual work
+- **Logger** → Saves everything for debugging
 
-**Retry Logic:**
-- Exponential backoff
-- Maximum retry attempts
-- Dead letter queue for permanent failures
+It seems like overkill, but trust me - when something breaks at 2 AM, you'll be glad everything is separated and logged.
 
-**Circuit Breaker:**
-- Stop calling failing API
-- Return cached data or error
-- Periodically test if API recovered
+## Working with JSON in Apex
 
-## Day 11 Architecture Breakdown
+JSON is just a way to structure data that both systems can understand. Think of it like a common language.
 
-### Flow Diagram
-```
-User updates Application Status to "Selected"
-  ↓
-[Trigger Layer] ApplicationTrigger fires
-  ↓
-[Handler Layer] ApplicationTriggerHandler detects change
-  ↓
-[Async Layer] CandidateSyncJob enqueued
-  ↓
-[Service Layer] ExternalPlacementService queries data
-  ↓
-[Integration Layer] HTTP POST to Named Credential
-  ↓
-[External API] JSONPlaceholder receives data
-  ↓
-[Logging Layer] Integration_Log__c created
-```
-
-### Separation of Concerns
-
-**Trigger** - Entry point only
-**Handler** - Orchestration, no logic
-**Queueable** - Enable async + callouts
-**Service** - Business logic + HTTP calls
-**Logger** - Persistence layer
-
-### Why This Architecture?
-
-1. **Testability** - Each layer tested independently
-2. **Maintainability** - Clear responsibilities
-3. **Scalability** - Async processing avoids timeouts
-4. **Reliability** - Logging enables debugging
-5. **Security** - Named Credentials protect secrets
-
-## JSON in Apex
-
-### Serialization
+**Turning Apex into JSON (Serialization):**
 ```apex
 Map<String, Object> data = new Map<String, Object>();
 data.put('name', 'John Doe');
@@ -231,270 +163,197 @@ String jsonString = JSON.serialize(data);
 // Result: {"name":"John Doe","email":"john@example.com"}
 ```
 
-### Deserialization
+**Turning JSON into Apex (Deserialization):**
 ```apex
 String jsonString = '{"id":1,"status":"success"}';
 Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
 
-Integer id = (Integer) result.get('id');
+Integer id = (Integer) result.get('id');  // Gets 1
 ```
 
-### Typed Deserialization
+Pro tip: For complex JSON, create a matching Apex class and use typed deserialization. Way cleaner!
+
+## Integration_Log__c - Our Safety Net
+
+This is arguably the most important part. Every single time we talk to an external system, we log it. Why?
+
+1. **Debugging** - When something breaks, you need to see what happened
+2. **Proof** - "Did we send that data?" → Check the logs
+3. **Monitoring** - How many calls succeeded today? Failed?
+4. **Compliance** - Some industries require audit trails
+
+**Fields we track:**
+- **Related_Record_Id__c** - Which Application triggered this?
+- **Integration_Type__c** - What kind of integration? ("Candidate Sync")
+- **Request_Body__c** - Exactly what we sent
+- **Response_Body__c** - Exactly what they sent back
+- **Status_Code__c** - 200, 404, 500, etc.
+- **Success__c** - Did it work? (checkbox for quick filtering)
+- **Error_Message__c** - If it failed, why?
+- **Timestamp__c** - When did this happen?
+
+**Quick queries you'll use:**
 ```apex
-public class ApiResponse {
-    public Integer id;
-    public String status;
-}
+// Show me all failed integrations from today
+SELECT Id, Error_Message__c, Timestamp__c
+FROM Integration_Log__c
+WHERE Success__c = false AND CreatedDate = TODAY
 
-ApiResponse response = (ApiResponse) JSON.deserialize(jsonString, ApiResponse.class);
+// Show me everything for this application
+SELECT Id, Status_Code__c, Success__c, Timestamp__c
+FROM Integration_Log__c
+WHERE Related_Record_Id__c = 'a00xxxxxxx'
+ORDER BY Timestamp__c DESC
 ```
 
-## Integration_Log__c Design
+## The Objects We're Using (From Previous Days)
 
-**Purpose:**
-- Audit trail of all integrations
-- Debugging failed callouts
-- Performance monitoring
-- Compliance requirements
+We're not creating new objects - we're reusing what we built earlier:
 
-**Fields:**
-- **Related_Record_Id__c** - Links back to Application
-- **Integration_Type__c** - Categorize integrations
-- **Request_Body__c** - What we sent
-- **Response_Body__c** - What we received
-- **Status_Code__c** - HTTP status
-- **Success__c** - Quick filter
-- **Error_Message__c** - Exception details
-- **Timestamp__c** - When it occurred
+**Application__c** (from Day 5-6)
+- Links a Student to a Job they applied for
+- Has a Status__c field: Applied, Interview Scheduled, **Selected**, Rejected
+- When Status changes to "Selected", our integration fires
 
-**Usage:**
+**Student__c** (from Day 5)
+- Student records with Name, Email, Department, CGPA
+- We send the student's name and email to the external system
+
+**Job__c** (from Day 5)
+- Job postings with Title, Company, Minimum CGPA, Salary
+- We send the job title and company to the external system
+
+**How they connect:**
+```
+Application__c.Student__c → Student__c
+Application__c.Job__c → Job__c
+```
+
+So we can query like this:
 ```apex
-Integration_Log__c log = new Integration_Log__c();
-log.Related_Record_Id__c = applicationId;
-log.Success__c = true;
-log.Status_Code__c = 200;
-log.Request_Body__c = jsonRequest;
-log.Response_Body__c = jsonResponse;
-insert log;
-```
-
-## Platform Objects Used (From Previous Days)
-
-### Application__c (Created in Day 5-6)
-**Purpose:** Junction object between Student and Job  
-**Key Fields:**
-- Student__c (Lookup to Student__c)
-- Job__c (Lookup to Job__c)
-- Status__c (Picklist: Applied, Interview Scheduled, Selected, Rejected)
-- Applied_Date__c (Date)
-
-**Used in Day 11:**
-- Trigger fires on Status__c change to "Selected"
-- Queried with Student__r and Job__r relationships
-- Linked to Integration_Log__c via Related_Record_Id__c
-
-### Student__c (Created in Day 5)
-**Purpose:** Student records for placement system  
-**Key Fields:**
-- Name (Text)
-- Email__c (Email)
-- Department__c (Text)
-- CGPA__c (Number)
-
-**Used in Day 11:**
-- Student name and email sent to external API
-- Accessed via Application__c.Student__r relationship
-
-### Job__c (Created in Day 5)
-**Purpose:** Job posting records  
-**Key Fields:**
-- Name (Text) - Job title
-- Company__c (Text)
-- Minimum_CGPA__c (Number)
-- Salary__c (Currency)
-
-**Used in Day 11:**
-- Job title and company sent to external API
-- Accessed via Application__c.Job__r relationship
-
-## Object Relationship Diagram
-
-```
-Student__c
-    ↓ (Lookup)
-Application__c ←→ Integration_Log__c (via Related_Record_Id__c)
-    ↓ (Lookup)
-Job__c
-```
-
-**Query Pattern:**
-```apex
-SELECT Id, Name, Status__c,
-       Student__c, Student__r.Name, Student__r.Email__c,
-       Job__c, Job__r.Name, Job__r.Company__c
+SELECT Id, Student__r.Name, Student__r.Email__c, Job__r.Name
 FROM Application__c
-WHERE Id IN :applicationIds
+WHERE Id = 'xxx'
 ```
 
-**Note:** Company_Integration__c mentioned in the original requirements is NOT used in this implementation. The current design uses Integration_Log__c to track all integration attempts, which serves the same purpose without requiring per-company configuration. In a real enterprise scenario, Company_Integration__c could be used to store API endpoints per recruiting company, but for this learning project, we use a single Named Credential (Recruitment_API) instead.
+The `__r` means "relationship" - we're jumping from Application to the related Student/Job records.
 
-## Governor Limits (Callouts)
+## Important Limits to Remember
 
-| Limit | Value |
-|-------|-------|
-| HTTP callouts per transaction | 100 |
-| Total timeout per transaction | 120 seconds |
-| Individual callout timeout | 120 seconds (default 10s) |
-| Max request size | 12 MB |
-| Max response size | 12 MB |
-| Max long-running request time | 120 seconds |
+Don't panic about these - they're pretty generous:
 
-**Avoiding Limits:**
-- Use Queueable/Batch for bulk operations
-- Combine multiple operations in single callout
-- Use Platform Events for high-volume scenarios
-- Implement async patterns
+| What | Limit | Reality Check |
+|------|-------|---------------|
+| HTTP callouts per transaction | 100 | That's a LOT |
+| Timeout per callout | 120 seconds | Most APIs respond in 1-2 seconds |
+| Total timeout per transaction | 120 seconds | Just don't make 100 slow calls |
+| Request/Response size | 12 MB each | Huge! You'd have to try to hit this |
 
-## Security Best Practices
+**How to avoid problems:**
+- Use Queueable/Batch for lots of callouts
+- Bundle multiple records into one API call when possible
+- Don't make callouts in loops (we designed around this)
 
-### 1. Never Hardcode Credentials
+## Security - Actually Important Stuff
+
+**Rule #1: Never Hardcode Credentials**
 ```apex
-// ❌ BAD
-req.setEndpoint('https://api.example.com');
-req.setHeader('Authorization', 'Bearer abc123token');
+// 🚫 NEVER DO THIS
+req.setHeader('Authorization', 'Bearer secrettoken123');
 
-// ✅ GOOD
-req.setEndpoint('callout:API_Credential');
-// Salesforce injects auth automatically
+// ✅ DO THIS
+req.setEndpoint('callout:My_Named_Credential');
 ```
 
-### 2. Use HTTPS Only
-- Always use encrypted connections
-- Verify SSL certificates
-- Never send sensitive data over HTTP
+**Rule #2: Always Use HTTPS**
+No exceptions. HTTP sends data in plain text. Would you email your password in plain text? Same thing.
 
-### 3. Validate Response Data
+**Rule #3: Respect Field-Level Security**
 ```apex
-if (res.getStatusCode() == 200) {
-    // Parse and validate JSON
-    // Don't trust external data
-}
+// Add this to your queries
+SELECT Id, Name FROM Student__c WITH SECURITY_ENFORCED
 ```
 
-### 4. Field-Level Security
-- Restrict access to Integration_Log__c
-- Sensitive data in Request/Response bodies
-- Use profiles/permission sets
+**Rule #4: Be Careful What You Log**
+Don't log sensitive stuff like credit cards or SSNs in Integration_Log__c. If you must, mask it first.
 
-### 5. Rate Limiting
-- Respect API quotas
-- Implement throttling
-- Cache responses when possible
+## Common Patterns You'll Use
 
-## Common Callout Patterns
-
-### 1. Simple POST
+### Simple POST Request
 ```apex
 HttpRequest req = new HttpRequest();
 req.setEndpoint('callout:My_API/resource');
 req.setMethod('POST');
 req.setHeader('Content-Type', 'application/json');
-req.setBody(JSON.serialize(data));
+req.setBody(JSON.serialize(myData));
 
 Http http = new Http();
 HttpResponse res = http.send(req);
 ```
 
-### 2. GET with Query Parameters
+### GET with Query Parameters
 ```apex
-String endpoint = 'callout:My_API/search?q=' + EncodingUtil.urlEncode(searchTerm, 'UTF-8');
-req.setEndpoint(endpoint);
+String searchTerm = 'software engineer';
+String encoded = EncodingUtil.urlEncode(searchTerm, 'UTF-8');
+req.setEndpoint('callout:My_API/search?q=' + encoded);
 req.setMethod('GET');
 ```
 
-### 3. With Bearer Token (via Named Credential)
+Always encode query parameters! Otherwise spaces and special characters will break your URL.
+
+## Testing Your Integration
+
+**The Quick Way (Anonymous Apex):**
 ```apex
-// Named Credential handles OAuth automatically
-req.setEndpoint('callout:OAuth_API/data');
-req.setMethod('GET');
-```
-
-### 4. Form-Encoded POST
-```apex
-String body = 'param1=value1&param2=value2';
-req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-req.setBody(body);
-```
-
-## Debugging Callouts
-
-### Enable Debug Logs
-1. Setup → Debug Logs
-2. Add user
-3. Set Callout level to FINEST
-
-### Check Logs For:
-```
-20:13:45.123 CALLOUT_REQUEST
-External endpoint: https://jsonplaceholder.typicode.com/posts
-Method: POST
-Headers: Content-Type=application/json
-Body: {"candidateName":"John Doe"...}
-
-20:13:45.789 CALLOUT_RESPONSE
-Status: 201
-Body: {"id":101,"candidateName":"John Doe"...}
-```
-
-### Query Integration Logs
-```apex
-List<Integration_Log__c> failed = [
-    SELECT Id, Related_Record_Id__c, Error_Message__c, Timestamp__c
-    FROM Integration_Log__c
-    WHERE Success__c = false
-    ORDER BY Timestamp__c DESC
+// Get an application
+Application__c app = [
+    SELECT Id, Status__c 
+    FROM Application__c 
+    WHERE Status__c != 'Selected'
+    LIMIT 1
 ];
+
+// Update to Selected
+app.Status__c = 'Selected';
+update app;
+
+// Wait a few seconds, then check the logs
+List<Integration_Log__c> logs = [
+    SELECT Success__c, Status_Code__c, Request_Body__c
+    FROM Integration_Log__c
+    WHERE Related_Record_Id__c = :app.Id
+    ORDER BY CreatedDate DESC
+    LIMIT 1
+];
+
+System.debug(logs);
 ```
 
-## Testing Callouts
+**What to Check:**
+1. **Debug Logs** - Setup → Debug Logs (set Callout level to FINEST)
+2. **Apex Jobs** - Setup → Apex Jobs (see your queued job)
+3. **Integration Logs** - Query Integration_Log__c records
 
-### Mock HTTP Responses
-```apex
-@isTest
-public class ExternalPlacementServiceTest {
-    
-    @isTest
-    static void testSuccessfulSync() {
-        // Setup test data
-        Application__c app = TestDataFactory.createApplication();
-        
-        // Set mock
-        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
-        
-        // Execute
-        Test.startTest();
-        ExternalPlacementService.syncSelectedCandidates(new List<Id>{app.Id});
-        Test.stopTest();
-        
-        // Verify log created
-        Integration_Log__c log = [SELECT Success__c, Status_Code__c FROM Integration_Log__c LIMIT 1];
-        System.assertEquals(true, log.Success__c);
-        System.assertEquals(200, log.Status_Code__c);
-    }
-}
-```
+## Debugging When Things Go Wrong
 
-### Mock Class
-```apex
-public class MockHttpResponseGenerator implements HttpCalloutMock {
-    public HTTPResponse respond(HTTPRequest req) {
-        HttpResponse res = new HttpResponse();
-        res.setStatusCode(200);
-        res.setBody('{"id":1,"status":"success"}');
-        return res;
-    }
-}
-```
+**"Unauthorized endpoint" error:**
+- Your Named Credential isn't set up
+- Go to Setup → Named Credentials and check it exists
+- URL should be: https://jsonplaceholder.typicode.com
+
+**"Read timed out" error:**
+- The API is slow or down
+- Add: `req.setTimeout(30000);` for a 30-second timeout
+
+**Integration Log not created:**
+- Check field-level security on Integration_Log__c
+- Look for DML errors in debug logs
+- Make sure request/response text isn't over 131,072 characters
+
+**Job not running:**
+- Check Setup → Apex Jobs
+- Look for errors there
+- You can only queue 50 jobs per transaction (you won't hit this)
 
 ## Real-World Applications
 
@@ -532,411 +391,79 @@ A: Use @future, Queueable Apex, Batch Apex, or Scheduled Apex depending on requi
 **Q: What's the trigger handler pattern?**
 A: Separating trigger logic into a handler class for testability, maintainability, and avoiding "logic-ful triggers".
 
-## Real-World Integration Examples
+## Real-World Examples (Where You'll Use This)
 
-### 1. Payment Processing (Stripe)
-```apex
-// Create a payment
-Map<String, Object> payload = new Map<String, Object>{
-    'amount' => 5000,  // $50.00
-    'currency' => 'usd',
-    'source' => cardToken,
-    'description' => 'Student placement fee'
-};
+**Payment Processing (Stripe, PayPal)**
+- Send payment details from Salesforce
+- Create charges, refunds, subscriptions
+- Log all transactions for accounting
 
-HttpRequest req = new HttpRequest();
-req.setEndpoint('callout:Stripe_API/v1/charges');
-req.setMethod('POST');
-req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-req.setBody(buildFormEncodedBody(payload));
+**SMS/Email (Twilio, SendGrid)**
+- Send notifications to students
+- "You've been selected for an interview!"
+- Track delivery status
 
-HttpResponse res = http.send(req);
-```
+**Document Generation (DocuSign)**
+- Send offer letters for e-signature
+- Track who signed what and when
+- Store signed docs back in Salesforce
 
-### 2. SMS Notifications (Twilio)
-```apex
-// Send SMS
-Map<String, String> params = new Map<String, String>{
-    'To' => studentPhone,
-    'From' => twilioPhone,
-    'Body' => 'Congratulations! You have been selected for ' + jobTitle
-};
+**ERP Systems (SAP, Oracle)**
+- Sync employee data
+- Update inventory levels
+- Push order information
 
-HttpRequest req = new HttpRequest();
-req.setEndpoint('callout:Twilio_API/2010-04-01/Accounts/{AccountSid}/Messages.json');
-req.setMethod('POST');
-req.setBody(buildFormEncodedBody(params));
-```
+**Data Warehouses (Snowflake, BigQuery)**
+- Send reporting data
+- Nightly bulk exports
+- Analytics and BI integration
 
-### 3. Document Generation (DocuSign)
-```apex
-// Send document for signature
-Map<String, Object> envelope = new Map<String, Object>{
-    'emailSubject' => 'Please sign your offer letter',
-    'documents' => new List<Object>{ documentData },
-    'recipients' => new Map<String, Object>{ 'signers' => signerList },
-    'status' => 'sent'
-};
+The pattern is always the same - it's what we built today, just with different APIs.
 
-HttpRequest req = new HttpRequest();
-req.setEndpoint('callout:DocuSign_API/v2/accounts/{accountId}/envelopes');
-req.setMethod('POST');
-req.setHeader('Content-Type', 'application/json');
-req.setBody(JSON.serialize(envelope));
-```
+## Interview Questions (What They'll Ask)
 
-### 4. Data Warehouse Sync (Snowflake)
-```apex
-// Bulk load data to warehouse
-List<Map<String, Object>> records = new List<Map<String, Object>>();
-for (Application__c app : applications) {
-    records.add(new Map<String, Object>{
-        'student_id' => app.Student__c,
-        'job_id' => app.Job__c,
-        'status' => app.Status__c,
-        'applied_date' => app.CreatedDate
-    });
-}
+**Q: Why use Queueable instead of @future?**
+A: Queueable lets you pass complex objects (not just primitives), has better monitoring in Apex Jobs, and you can chain jobs if needed. Plus it's just more modern.
 
-HttpRequest req = new HttpRequest();
-req.setEndpoint('callout:Snowflake_API/api/v2/statements');
-req.setMethod('POST');
-req.setBody(JSON.serialize(new Map<String, Object>{
-    'statement' => 'INSERT INTO applications VALUES (?)',
-    'bindings' => records
-}));
-```
+**Q: What's a Named Credential?**
+A: It's where you store API URLs and credentials securely. Instead of hardcoding "https://api.example.com" and tokens in your code, you reference it as "callout:My_API". Salesforce handles authentication for you.
 
-## Advanced Error Handling
+**Q: Why log every integration?**
+A: Debugging, compliance, proving data was sent, tracking success rates, and finding patterns in failures. When something breaks in production, logs save your life.
 
-### Retry with Exponential Backoff
-```apex
-public class RetryableCallout {
-    private static final Integer MAX_RETRIES = 3;
-    private static final Integer BASE_DELAY = 1000; // 1 second
-    
-    public static HttpResponse makeCalloutWithRetry(HttpRequest req) {
-        Integer attempt = 0;
-        
-        while (attempt < MAX_RETRIES) {
-            try {
-                Http http = new Http();
-                HttpResponse res = http.send(req);
-                
-                // Success - return response
-                if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
-                    return res;
-                }
-                
-                // Server error - retry
-                if (res.getStatusCode() >= 500) {
-                    attempt++;
-                    if (attempt < MAX_RETRIES) {
-                        // Exponential backoff: 1s, 2s, 4s
-                        Integer delay = BASE_DELAY * (Integer)Math.pow(2, attempt - 1);
-                        // Note: Apex doesn't have Thread.sleep(), 
-                        // In production, use Queueable chaining with delay
-                    }
-                    continue;
-                }
-                
-                // Client error - don't retry
-                return res;
-                
-            } catch (Exception e) {
-                attempt++;
-                if (attempt >= MAX_RETRIES) {
-                    throw e;
-                }
-            }
-        }
-        
-        return null;
-    }
-}
-```
+**Q: What if the API is down?**
+A: Current code logs the error. In production, add retry logic (try 3 times with increasing delays), then alert someone. Maybe queue it for manual retry later.
 
-### Circuit Breaker Pattern
-```apex
-public class CircuitBreaker {
-    private static Integer failureCount = 0;
-    private static final Integer FAILURE_THRESHOLD = 5;
-    private static DateTime lastFailureTime;
-    private static final Integer COOLDOWN_MINUTES = 5;
-    
-    public static Boolean isOpen() {
-        // If threshold exceeded recently, circuit is open
-        if (failureCount >= FAILURE_THRESHOLD) {
-            if (lastFailureTime != null && 
-                lastFailureTime.addMinutes(COOLDOWN_MINUTES) > System.now()) {
-                return true; // Circuit open - don't make call
-            } else {
-                // Cooldown period passed - reset
-                failureCount = 0;
-                return false;
-            }
-        }
-        return false;
-    }
-    
-    public static void recordSuccess() {
-        failureCount = 0;
-    }
-    
-    public static void recordFailure() {
-        failureCount++;
-        lastFailureTime = System.now();
-    }
-}
+**Q: How do you test Apex that makes callouts?**
+A: Use Test.setMock() with HttpCalloutMock to fake responses. You can't make real HTTP calls in test methods (Salesforce blocks it).
 
-// Usage:
-if (CircuitBreaker.isOpen()) {
-    System.debug('Circuit breaker open - skipping API call');
-    return;
-}
+## What I Actually Learned Today
 
-try {
-    HttpResponse res = http.send(req);
-    if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
-        CircuitBreaker.recordSuccess();
-    } else {
-        CircuitBreaker.recordFailure();
-    }
-} catch (Exception e) {
-    CircuitBreaker.recordFailure();
-}
-```
+- How to make HTTP calls from Salesforce (it's easier than I thought!)
+- Named Credentials are brilliant (no more hardcoded secrets!)
+- Queueable Apex for background processing
+- Why we separate trigger → handler → service (it seems excessive until something breaks)
+- Integration logging is non-negotiable (you'll thank yourself later)
+- JSON serialization/deserialization in Apex
+- How to debug callouts (debug logs are your friend)
 
-## Performance Optimization
+## Key Takeaways (The Important Bits)
 
-### 1. Batch Multiple Records in Single Callout
-```apex
-// Instead of one callout per application
-for (Application__c app : applications) {
-    makeCallout(app); // BAD - uses all 100 callout limit quickly
-}
+1. **Never hardcode credentials** - Use Named Credentials
+2. **Always log integrations** - Future you will thank current you
+3. **Use Queueable for callouts** - Triggers can't make HTTP calls directly
+4. **Separate your concerns** - Trigger stays tiny, business logic goes in services
+5. **Handle errors gracefully** - Try-catch + logging
+6. **Think async** - Don't make users wait for external APIs
 
-// Batch them
-List<Map<String, Object>> batch = new List<Map<String, Object>>();
-for (Application__c app : applications) {
-    batch.add(buildPayload(app));
-    
-    // Send in batches of 50
-    if (batch.size() == 50) {
-        sendBatch(batch);
-        batch.clear();
-    }
-}
-if (!batch.isEmpty()) {
-    sendBatch(batch); // Send remaining
-}
-```
+## What's Next?
 
-### 2. Caching Responses
-```apex
-public class ApiCache {
-    private static Map<String, String> cache = new Map<String, String>();
-    private static Map<String, DateTime> cacheExpiry = new Map<String, DateTime>();
-    
-    public static String get(String key) {
-        if (cache.containsKey(key)) {
-            DateTime expiry = cacheExpiry.get(key);
-            if (expiry > System.now()) {
-                return cache.get(key); // Return cached value
-            } else {
-                cache.remove(key); // Expired
-                cacheExpiry.remove(key);
-            }
-        }
-        return null;
-    }
-    
-    public static void put(String key, String value, Integer ttlMinutes) {
-        cache.put(key, value);
-        cacheExpiry.put(key, System.now().addMinutes(ttlMinutes));
-    }
-}
+In a real project, you'd add:
+- **Retry logic** - Auto-retry failed calls
+- **Monitoring dashboards** - Charts showing success rates
+- **Platform Events** - For high-volume real-time scenarios
+- **Bidirectional sync** - External system calling back into Salesforce
+- **OAuth** - Replace anonymous auth with real security
 
-// Usage:
-String cacheKey = 'job_details_' + jobId;
-String cachedResponse = ApiCache.get(cacheKey);
-
-if (cachedResponse != null) {
-    return cachedResponse; // Use cached data
-}
-
-// Make API call
-HttpResponse res = http.send(req);
-ApiCache.put(cacheKey, res.getBody(), 60); // Cache for 60 minutes
-```
-
-### 3. Parallel Processing with Platform Events
-```apex
-// Publisher (in trigger handler)
-List<Candidate_Sync_Event__e> events = new List<Candidate_Sync_Event__e>();
-for (Id appId : selectedAppIds) {
-    events.add(new Candidate_Sync_Event__e(
-        Application_Id__c = appId
-    ));
-}
-EventBus.publish(events);
-
-// Subscriber (separate trigger)
-trigger CandidateSyncEventTrigger on Candidate_Sync_Event__e (after insert) {
-    List<Id> appIds = new List<Id>();
-    for (Candidate_Sync_Event__e event : Trigger.new) {
-        appIds.add((Id)event.Application_Id__c);
-    }
-    System.enqueueJob(new CandidateSyncJob(appIds));
-}
-```
-
-## Security Deep Dive
-
-### 1. Field-Level Security
-```apex
-// Check FLS before querying
-if (!Schema.sObjectType.Student__c.fields.Email__c.isAccessible()) {
-    throw new SecurityException('No access to Email field');
-}
-
-// Use WITH SECURITY_ENFORCED
-List<Application__c> apps = [
-    SELECT Id, Student__r.Email__c 
-    FROM Application__c 
-    WITH SECURITY_ENFORCED
-];
-```
-
-### 2. Named Credential with OAuth 2.0
-```
-Setup → Named Credentials → New
-- Label: Production API
-- URL: https://api.production.com
-- Identity Type: Named Principal
-- Authentication Protocol: OAuth 2.0
-- Token Endpoint: https://api.production.com/oauth/token
-- Client ID: [from API provider]
-- Client Secret: [from API provider]
-- Scope: read write
-- Start Authentication Flow → Authorize
-```
-
-### 3. IP Whitelisting
-```
-Setup → Remote Site Settings → New
-- Remote Site Name: ProductionAPI
-- Remote Site URL: https://api.production.com
-- Disable Protocol Security: Unchecked (always use HTTPS)
-
-Setup → Network Access → New
-- IP Address: [API provider's IP range]
-```
-
-### 4. Protecting Sensitive Data in Logs
-```apex
-private static void logIntegration(String request, String response) {
-    // Mask sensitive fields
-    request = maskSensitiveData(request);
-    response = maskSensitiveData(response);
-    
-    Integration_Log__c log = new Integration_Log__c();
-    log.Request_Body__c = request;
-    log.Response_Body__c = response;
-    insert log;
-}
-
-private static String maskSensitiveData(String data) {
-    // Mask credit card numbers
-    data = data.replaceAll('\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}', '****-****-****-####');
-    
-    // Mask email addresses
-    data = data.replaceAll('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', '***@***.***');
-    
-    // Mask SSN
-    data = data.replaceAll('\\d{3}-\\d{2}-\\d{4}', '***-**-####');
-    
-    return data;
-}
-```
-
-## Production Monitoring Dashboard
-
-### Custom Metadata for Integration Endpoints
-```apex
-// Define Integration_Endpoint__mdt
-Integration_Endpoint__mdt endpoint = [
-    SELECT Endpoint_URL__c, Timeout__c, Retry_Count__c, Active__c
-    FROM Integration_Endpoint__mdt
-    WHERE DeveloperName = 'Recruitment_API'
-];
-
-if (!endpoint.Active__c) {
-    System.debug('Endpoint is disabled');
-    return;
-}
-
-req.setEndpoint(endpoint.Endpoint_URL__c);
-req.setTimeout((Integer)endpoint.Timeout__c);
-```
-
-### Health Check Scheduled Job
-```apex
-global class IntegrationHealthCheck implements Schedulable {
-    global void execute(SchedulableContext sc) {
-        // Check last 24 hours
-        AggregateResult[] stats = [
-            SELECT COUNT(Id) total,
-                   SUM(CASE WHEN Success__c = true THEN 1 ELSE 0 END) successful
-            FROM Integration_Log__c
-            WHERE CreatedDate = LAST_N_DAYS:1
-        ];
-        
-        Integer total = (Integer)stats[0].get('total');
-        Integer successful = (Integer)stats[0].get('successful');
-        Decimal successRate = total > 0 ? (successful * 100.0 / total) : 100;
-        
-        // Alert if success rate drops below 95%
-        if (successRate < 95) {
-            // Send alert email
-            Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-            mail.setToAddresses(new String[]{'admin@company.com'});
-            mail.setSubject('Integration Health Alert: Success Rate ' + successRate + '%');
-            mail.setPlainTextBody('Integration success rate dropped to ' + successRate + '%');
-            Messaging.sendEmail(new Messaging.SingleEmailMessage[]{mail});
-        }
-    }
-}
-
-// Schedule hourly
-System.schedule('Integration Health Check', '0 0 * * * ?', new IntegrationHealthCheck());
-```
-
-## What I Learned Today
-
-✅ REST API integration from Salesforce  
-✅ Named Credentials for secure authentication  
-✅ Queueable Apex for async callouts  
-✅ Trigger Handler pattern for clean code  
-✅ Integration logging for debugging  
-✅ Error handling in distributed systems  
-✅ JSON serialization/deserialization  
-✅ Governor limits for callouts  
-✅ Testing strategies for external integrations  
-✅ Production-grade patterns: retry logic, circuit breaker, caching  
-✅ Security best practices for external integrations  
-✅ Monitoring and alerting for integration health  
-
-## Key Takeaways
-
-1. **Never hardcode** - Use Named Credentials
-2. **Always log** - Integration_Log__c is critical
-3. **Go async** - Queueable for callouts
-4. **Separate concerns** - Trigger → Handler → Service
-5. **Handle errors** - Try-catch + logging + retry logic
-6. **Test with mocks** - HttpCalloutMock interface
-7. **Think production** - Retry logic, monitoring, alerts, circuit breakers
-8. **Secure everything** - OAuth, FLS, HTTPS only, mask sensitive data
-9. **Optimize performance** - Batch records, cache responses, use Platform Events
-10. **Monitor proactively** - Health checks, success rate tracking, alerting
+But what we built today is solid. It's production-ready for many scenarios, logs everything, and follows best practices. Not bad for Day 11!
 

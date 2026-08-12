@@ -263,14 +263,158 @@ private class MyServiceTest {
 4. **SOQL is powerful** - Learn it well
 5. **Security matters** - Use `with sharing`
 
-## What's Next?
+## Step 8: ApplicationTrigger – CGPA Validation
 
-Next step in Day 1 is creating an **ApplicationTrigger** that automatically validates applications. For example: students with CGPA < job minimum shouldn't be able to apply.
+This is where the project becomes a real business application. Instead of manually checking if a student is eligible, Salesforce now does it automatically every time someone tries to apply.
 
-That's where triggers come in - code that runs automatically when records are inserted/updated/deleted.
+### What it does
+
+When someone creates a new Application__c record, the trigger:
+1. Grabs the student's CGPA
+2. Grabs the job's minimum CGPA requirement
+3. Compares them
+4. Blocks the save with an error message if the student doesn't qualify
+
+**Real examples:**
+- Rahul (CGPA 9) → Microsoft (min 8) → ✅ Allowed
+- Ananya (CGPA 8) → Microsoft (min 8) → ✅ Allowed
+- Kiran (CGPA 7) → Microsoft (min 8) → ❌ Blocked
+
+### The Trigger Code
+
+```apex
+trigger ApplicationTrigger on Application__c (before insert, after update) {
+
+    // Day 1: Validate CGPA eligibility before a new application is saved
+    if (Trigger.isBefore && Trigger.isInsert) {
+        ApplicationTriggerHandler.handleBeforeInsert(Trigger.new);
+    }
+
+    // Day 11: Sync selected candidates to external system (added later)
+    if (Trigger.isAfter && Trigger.isUpdate) {
+        ApplicationTriggerHandler.handleAfterUpdate(Trigger.new, Trigger.oldMap);
+    }
+}
+```
+
+Notice the trigger is tiny — just routing to a handler. The actual logic lives in the handler class.
+
+### The Handler Logic
+
+```apex
+public static void handleBeforeInsert(List<Application__c> newList) {
+
+    // Step 1: Collect all IDs first
+    Set<Id> studentIds = new Set<Id>();
+    Set<Id> jobIds = new Set<Id>();
+
+    for (Application__c app : newList) {
+        if (app.Student__c != null) studentIds.add(app.Student__c);
+        if (app.Job__c != null)     jobIds.add(app.Job__c);
+    }
+
+    // Step 2: Query once for all students, once for all jobs
+    Map<Id, Student__c> studentMap = new Map<Id, Student__c>(
+        [SELECT Id, Name, CGPA__c FROM Student__c WHERE Id IN :studentIds]
+    );
+    Map<Id, Job__c> jobMap = new Map<Id, Job__c>(
+        [SELECT Id, Name, Minimum_CGPA__c FROM Job__c WHERE Id IN :jobIds]
+    );
+
+    // Step 3: Validate each application
+    for (Application__c app : newList) {
+        Student__c student = studentMap.get(app.Student__c);
+        Job__c     job     = jobMap.get(app.Job__c);
+
+        if (student != null && job != null) {
+            if (student.CGPA__c < job.Minimum_CGPA__c) {
+                app.addError('Student is not eligible for this job because the CGPA requirement is not met.');
+            }
+        }
+    }
+}
+```
+
+### Why This Is Already Production-Ready
+
+**Bulkification** — This is the most important concept in Salesforce development.
+
+If someone imports 200 applications at once using Data Loader, this trigger handles all 200 in one shot. Here's why:
+
+❌ **Naive approach (broken at scale):**
+```apex
+for (Application__c app : Trigger.new) {
+    Student__c s = [SELECT CGPA__c FROM Student__c WHERE Id = :app.Student__c]; // SOQL in loop!
+    Job__c j = [SELECT Minimum_CGPA__c FROM Job__c WHERE Id = :app.Job__c];      // SOQL in loop!
+}
+```
+For 200 records → 400 SOQL queries. Salesforce allows 100 max. 💥 Crashes.
+
+✅ **Bulkified approach (what we built):**
+```apex
+// Collect all IDs first
+for (Application__c app : Trigger.new) {
+    studentIds.add(app.Student__c);
+    jobIds.add(app.Job__c);
+}
+
+// Query once for everything
+Map<Id, Student__c> studentMap = new Map<Id, Student__c>([...WHERE Id IN :studentIds]);
+Map<Id, Job__c> jobMap = new Map<Id, Job__c>([...WHERE Id IN :jobIds]);
+
+// Then loop and use the Map (no SOQL here)
+for (Application__c app : Trigger.new) {
+    Student__c s = studentMap.get(app.Student__c);  // instant Map lookup, not a query
+}
+```
+For 200 records → 2 SOQL queries. Always. ✅
+
+### Key Concepts from This Trigger
+
+| Concept | Where it's used |
+|---|---|
+| `before insert` | Runs before the record saves (can block it) |
+| `Trigger.new` | List of records being inserted |
+| `Set<Id>` | Collecting unique IDs without duplicates |
+| `Map<Id, SObject>` | Fast lookup by record ID |
+| `addError()` | Blocks the save and shows user-facing message |
+| Bulkification | No SOQL inside loops — ever |
+
+### Testing the Trigger
+
+**Test 1 - Should pass:**
+1. App Launcher → Applications → New
+2. Student: Rahul (CGPA 9), Job: Microsoft (min 8)
+3. Click Save → Record created ✅
+
+**Test 2 - Should be blocked:**
+1. App Launcher → Applications → New
+2. Student: Kiran (CGPA 7), Job: Microsoft (min 8)
+3. Click Save → Error message appears ❌
+
+**Verify with SOQL:**
+```sql
+SELECT Name, Student__r.Name, Job__r.Name, Status__c
+FROM Application__c
+```
+Only the valid application should appear.
+
+### What `before insert` vs `after insert` means
+
+- **before insert** — Record exists in memory but NOT yet saved to the database.
+  - Can modify field values
+  - Can call `addError()` to block the save
+  - Cannot use the record's Id (it doesn't have one yet)
+
+- **after insert** — Record is now saved. Has an Id.
+  - Cannot block the save
+  - Good for creating related records or sending notifications
+
+For validation, always use `before insert`.
 
 ---
 
-**Status**: ✅ PlacementService completed and tested!  
-**Test Results**: 1/1 tests passed (100%)  
-**Code Coverage**: Service class methods covered  
+**Status**: ✅ PlacementService + ApplicationTrigger completed!
+**Tests**: 1/1 passing
+**Deployment**: Succeeded
+**Trigger tested**: CGPA validation working correctly

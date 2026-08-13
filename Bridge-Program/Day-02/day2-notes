@@ -1,0 +1,164 @@
+# Day 2 Notes – Trigger Handler Architecture & Service Layer
+
+## What We Did Today
+
+No new objects. No new features really. We took the Day 1 code and made it production-ready by restructuring it properly.
+
+This is called **refactoring** — improving the structure of code without changing what it does.
+
+## What Changed
+
+**Day 1 architecture:**
+```
+ApplicationTrigger
+    └── all the logic was here (SOQL queries, validation, addError)
+```
+
+**Day 2 architecture:**
+```
+ApplicationTrigger          ← 3 lines, nothing else
+    ↓
+ApplicationTriggerHandler   ← routes to the right service method
+    ↓
+ApplicationService          ← all the actual business logic lives here
+```
+
+Each piece now has one job. That's it.
+
+## Why This Matters
+
+When you put all your logic in a trigger:
+- You can't reuse it anywhere else
+- It's hard to test
+- It becomes messy fast as requirements grow
+
+When you put logic in a service class:
+- Any controller, trigger, batch job, or LWC can call it
+- You can test it independently
+- Adding new rules is just adding a method
+
+## The Three Files
+
+### ApplicationTrigger.trigger (3 lines)
+```apex
+trigger ApplicationTrigger on Application__c (before insert) {
+    ApplicationTriggerHandler.beforeInsert(Trigger.new);
+}
+```
+That's all a trigger should ever do. Call the handler.
+
+### ApplicationTriggerHandler.cls
+```apex
+public with sharing class ApplicationTriggerHandler {
+
+    public static void beforeInsert(List<Application__c> applications) {
+        ApplicationService.validateApplications(applications);
+    }
+}
+```
+The handler just routes. `before insert` → call this service method.
+As the project grows, you add more methods here for other trigger events.
+
+### ApplicationService.cls
+This is where the real work happens. `validateApplications()` does two things:
+
+**1. CGPA check** — same as Day 1:
+```apex
+if (student.CGPA__c < job.Minimum_CGPA__c) {
+    app.addError('Student does not meet the minimum CGPA requirement.');
+}
+```
+
+**2. Duplicate check** — new in Day 2:
+```apex
+String key = app.Student__c + '-' + app.Job__c;
+
+if (existingPairs.contains(key)) {
+    app.addError('This student has already applied for this job.');
+}
+```
+
+## The Duplicate Check — How It Works
+
+We can't just query for existing applications inside the loop (SOQL in a loop = bad).
+
+Instead:
+1. Query all existing applications for this student-job combination in one shot
+2. Store them as `"studentId-jobId"` strings in a Set
+3. In the loop, build the same string for each incoming application
+4. If that string is in the Set → it's a duplicate
+
+```apex
+// Build the set of existing pairs
+Set<String> existingPairs = new Set<String>();
+for (Application__c existing : [
+    SELECT Student__c, Job__c
+    FROM Application__c
+    WHERE Student__c IN :studentIds
+    AND Job__c IN :jobIds
+]) {
+    existingPairs.add(existing.Student__c + '-' + existing.Job__c);
+}
+
+// Check each incoming application against it
+String key = app.Student__c + '-' + app.Job__c;
+if (existingPairs.contains(key)) {
+    app.addError('This student has already applied for this job.');
+}
+```
+
+This is still bulk-safe — 3 SOQL queries total, regardless of how many applications come in at once.
+
+## Collections Used Today
+
+**Set<Id>** — stores unique IDs, automatically removes duplicates
+```apex
+Set<Id> studentIds = new Set<Id>();
+studentIds.add(app.Student__c);  // same ID added twice? doesn't matter, Set ignores it
+```
+
+**Map<Id, SObject>** — key-value store for fast lookup by ID
+```apex
+Map<Id, Student__c> students = new Map<Id, Student__c>([SELECT Id, CGPA__c FROM Student__c]);
+Student__c s = students.get(someId);  // instant, no query
+```
+
+**Set<String>** — same as Set<Id> but for composite keys
+```apex
+Set<String> existingPairs = new Set<String>();
+existingPairs.add('001xx-006xx');         // studentId + '-' + jobId
+existingPairs.contains('001xx-006xx');   // true/false check
+```
+
+## Governor Limits in This Code
+
+SOQL queries used in `validateApplications()`:
+1. Query students — 1 query for all students
+2. Query jobs — 1 query for all jobs
+3. Query existing applications — 1 query for all combinations
+
+Total: **3 queries**, no matter if 1 or 1000 applications are processed.
+
+Salesforce allows 100 SOQL queries per transaction. We're using 3. Plenty of headroom.
+
+## Testing the Three Scenarios
+
+**Test 1 – Should work:**
+- Student: Rahul (CGPA 9), Job: Microsoft (min 8)
+- Result: Application saved ✅
+
+**Test 2 – CGPA too low:**
+- Student: Kiran (CGPA 7), Job: Microsoft (min 8)
+- Result: `Student does not meet the minimum CGPA requirement.` ❌
+
+**Test 3 – Duplicate:**
+- Student: Rahul, Job: Microsoft (again)
+- Result: `This student has already applied for this job.` ❌
+
+## Key Takeaways
+
+1. **Trigger = entry point only** — 3 lines max
+2. **Handler = routing** — decides which service method handles what
+3. **Service = business logic** — reusable, testable, clean
+4. **Never SOQL in a loop** — collect IDs, query once, use Maps
+5. **Set<String> for composite keys** — great for duplicate detection

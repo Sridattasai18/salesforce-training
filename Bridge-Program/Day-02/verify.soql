@@ -1,0 +1,29 @@
+-- Day 2 Verification Queries
+
+-- Query 1: View all applications with student and job details
+SELECT Name,
+       Student__r.Name,
+       Student__r.CGPA__c,
+       Job__r.Name,
+       Job__r.Company__c,
+       Job__r.Minimum_CGPA__c,
+       Status__c,
+       Application_Date__c
+FROM Application__c
+ORDER BY CreatedDate DESC;
+
+-- Query 2: Check for duplicate applications (should be none)
+SELECT Student__c, Job__c, COUNT(Id) duplicateCount
+FROM Application__c
+GROUP BY Student__c, Job__c
+HAVING COUNT(Id) > 1;
+
+-- Query 3: View all students with their CGPA
+SELECT Name, CGPA__c, Email__c, Department__c
+FROM Student__c
+ORDER BY CGPA__c DESC;
+
+-- Query 4: View all jobs with minimum CGPA requirements
+SELECT Name, Company__c, Minimum_CGPA__c, Location__c, Status__c
+FROM Job__c
+ORDER BY Minimum_CGPA__c DESC;

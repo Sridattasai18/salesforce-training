@@ -1,0 +1,46 @@
+<template>
+    <lightning-card title="Placement Dashboard" icon-name="standard:education">
+        <div class="slds-p-around_medium">
+
+            <div class="slds-media slds-media_center slds-m-bottom_medium">
+                <div class="slds-media__body">
+                    <h2 class="slds-text-heading_medium">Welcome, Student 👋</h2>
+                    <p class="slds-text-color_weak">Here's a quick look at your placement activity.</p>
+                </div>
+            </div>
+
+            <div class="slds-grid slds-gutters slds-wrap">
+
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                    <div class="slds-box slds-theme_shade slds-text-align_center">
+                        <p class="slds-text-heading_large">{studentCount}</p>
+                        <p class="slds-text-body_small slds-text-color_weak">Students</p>
+                    </div>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                    <div class="slds-box slds-theme_shade slds-text-align_center">
+                        <p class="slds-text-heading_large">{jobCount}</p>
+                        <p class="slds-text-body_small slds-text-color_weak">Jobs</p>
+                    </div>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                    <div class="slds-box slds-theme_shade slds-text-align_center">
+                        <p class="slds-text-heading_large">{applicationCount}</p>
+                        <p class="slds-text-body_small slds-text-color_weak">Applications</p>
+                    </div>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                    <div class="slds-box slds-theme_shade slds-text-align_center">
+                        <p class="slds-text-heading_large">{offerCount}</p>
+                        <p class="slds-text-body_small slds-text-color_weak">Offer Letters</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

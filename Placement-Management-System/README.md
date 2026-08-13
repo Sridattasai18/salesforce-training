@@ -1,360 +1,174 @@
 # Placement Management System
 
-A comprehensive Salesforce application for managing campus placement activities, including student profiles, job postings, and application tracking.
-
-## Overview
-
-The Placement Management System streamlines the entire campus recruitment process by:
-- Managing student profiles with academic performance tracking
-- Handling job postings from companies
-- Automating application validation based on eligibility criteria
-- Preventing duplicate applications
-- Providing real-time application status tracking
-
-## Features
-
-### ✅ Student Management
-- Complete student profiles with academic details
-- CGPA tracking
-- Department-wise organization
-- Backlog management
-- Placement status tracking
-
-### ✅ Job Management
-- Job posting creation with detailed requirements
-- Company information
-- Location and salary details
-- Minimum CGPA requirements
-- Allowed backlogs specification
-- Opening and closing dates
-
-### ✅ Application Management
-- Automated eligibility validation
-- Duplicate application prevention
-- Application status workflow (Applied → Reviewed → Selected/Rejected)
-- Application date tracking
-- Bulk-safe processing
-
-### ✅ Business Logic Layer
-- Service-oriented architecture
-- Reusable business logic
-- Trigger handler pattern
-- Exception handling
-- Governor limit optimized
-
-## Architecture
-
-```
-ApplicationTrigger (Entry Point)
-    ↓
-ApplicationTriggerHandler (Event Router)
-    ↓
-ApplicationService (Business Logic)
-    ├── validateApplications()
-    └── submitApplication()
-
-PlacementService (Utility Methods)
-    ├── getEligibleStudents()
-    ├── getStudentsByDepartment()
-    └── createApplication()
-```
-
-### Design Patterns Used
-
-1. **Trigger Handler Pattern** — Clean separation between trigger and logic
-2. **Service Layer Pattern** — Reusable business logic components
-3. **Bulk Processing** — All operations handle multiple records efficiently
-4. **Exception Handling** — Custom exceptions for validation errors
-
-## Data Model
-
-### Custom Objects
-
-#### Student__c
-| Field | Type | Description |
-|-------|------|-------------|
-| Name | Text | Student name |
-| Roll_Number__c | Text | Unique roll number |
-| Email__c | Email | Contact email |
-| CGPA__c | Number(2,2) | Current CGPA |
-| Department__c | Picklist | Academic department |
-| Active_Backlogs__c | Number | Count of active backlogs |
-| Placement_Status__c | Picklist | Placed/Not Placed |
-
-#### Job__c
-| Field | Type | Description |
-|-------|------|-------------|
-| Name | Text | Job title |
-| Company__c | Text | Hiring company |
-| Location__c | Text | Job location |
-| Minimum_CGPA__c | Number(2,2) | Minimum CGPA required |
-| Allowed_Backlogs__c | Number | Maximum backlogs allowed |
-| Salary__c | Currency | Salary package |
-| Closing_Date__c | Date | Application deadline |
-| Status__c | Picklist | Open/Closed |
-
-#### Application__c
-| Field | Type | Description |
-|-------|------|-------------|
-| Student__c | Lookup(Student__c) | Applicant student |
-| Job__c | Lookup(Job__c) | Applied job |
-| Status__c | Picklist | Applied/Reviewed/Selected/Rejected |
-| Application_Date__c | Date | Date of application |
-
-### Relationships
-
-```
-Student__c ──< Application__c >── Job__c
-   (1:N)                            (N:1)
-```
-
-## Business Rules
-
-### Validation Rules
-
-1. **CGPA Eligibility**
-   - Student's CGPA must meet or exceed job's minimum CGPA requirement
-   - Error: "Student does not meet the minimum CGPA requirement."
-
-2. **Duplicate Prevention**
-   - A student cannot apply to the same job twice
-   - Error: "This student has already applied for this job."
-
-### Trigger Events
-
-- **before insert** — Validates applications before saving
-
-## Installation
-
-### Prerequisites
-- Salesforce CLI installed
-- Authenticated Salesforce org
-- Git (optional, for version control)
-
-### Deployment Steps
-
-```bash
-# 1. Clone or navigate to the project
-cd placement-system
-
-# 2. Deploy to your org
-sf project deploy start
-
-# 3. Verify deployment
-sf project deploy report
-
-# 4. Open the org
-sf org open
-```
-
-### Post-Deployment Setup
-
-1. **Create Sample Data**
-   - Add students with varying CGPA values
-   - Create job postings with different requirements
-   - Test application creation
-
-2. **Assign Permissions**
-   - Ensure users have CRUD access to all custom objects
-   - Grant execute permission on Apex classes
-
-3. **Test Validations**
-   - Try creating a valid application (should succeed)
-   - Try applying with low CGPA (should fail)
-   - Try duplicate application (should fail)
-
-## Usage
-
-### Creating Students
-
-```apex
-Student__c student = new Student__c(
-    Name = 'Rahul Kumar',
-    Roll_Number__c = 'CS2021001',
-    Email__c = 'rahul@example.com',
-    CGPA__c = 8.5,
-    Department__c = 'Computer Science',
-    Active_Backlogs__c = 0,
-    Placement_Status__c = 'Not Placed'
-);
-insert student;
-```
-
-### Creating Jobs
-
-```apex
-Job__c job = new Job__c(
-    Name = 'Software Engineer',
-    Company__c = 'Microsoft',
-    Location__c = 'Hyderabad',
-    Minimum_CGPA__c = 8.0,
-    Allowed_Backlogs__c = 0,
-    Salary__c = 1200000,
-    Closing_Date__c = Date.today().addDays(30),
-    Status__c = 'Open'
-);
-insert job;
-```
-
-### Submitting Applications
-
-```apex
-// Option 1: Direct insert (trigger validates)
-Application__c app = new Application__c(
-    Student__c = studentId,
-    Job__c = jobId,
-    Status__c = 'Applied',
-    Application_Date__c = Date.today()
-);
-insert app; // Validation happens automatically
-
-// Option 2: Using service method
-Id applicationId = ApplicationService.submitApplication(jobId);
-```
-
-### Querying Data
-
-```sql
--- Get all applications for a student
-SELECT Job__r.Name, Job__r.Company__c, Status__c
-FROM Application__c
-WHERE Student__c = :studentId
-ORDER BY Application_Date__c DESC
-
--- Get eligible students for a job
-SELECT Name, CGPA__c, Department__c
-FROM Student__c
-WHERE CGPA__c >= 8.0 AND Active_Backlogs__c = 0
-
--- Check application status
-SELECT Student__r.Name, Job__r.Name, Status__c
-FROM Application__c
-WHERE Status__c = 'Applied'
-```
-
-## API Reference
-
-### ApplicationService
-
-#### `validateApplications(List<Application__c> applications)`
-- **Type:** Static void method
-- **Purpose:** Validates CGPA eligibility and prevents duplicates
-- **Called by:** ApplicationTriggerHandler
-- **Governor Limits:** 3 SOQL queries (bulk-safe)
-
-#### `submitApplication(Id jobId)`
-- **Type:** Static method
-- **Returns:** Id (Application record ID)
-- **Purpose:** Creates an application for the first student (demo)
-- **Throws:** ApplicationException on validation failure
-
-### PlacementService
-
-#### `getEligibleStudents(Decimal minimumCGPA)`
-- **Type:** Static method
-- **Returns:** List<Student__c>
-- **Purpose:** Retrieves students meeting CGPA criteria
-
-#### `getStudentsByDepartment(String department)`
-- **Type:** Static method
-- **Returns:** List<Student__c>
-- **Purpose:** Retrieves students from a specific department
-
-#### `createApplication(Id studentId, Id jobId)`
-- **Type:** Static method
-- **Returns:** Application__c
-- **Purpose:** Creates an application record
-
-## Testing
-
-### Manual Testing Scenarios
-
-1. **Valid Application**
-   - Student CGPA: 9.0, Job Minimum: 8.0
-   - Expected: Application created ✅
-
-2. **CGPA Validation**
-   - Student CGPA: 7.0, Job Minimum: 8.0
-   - Expected: Error message ❌
-
-3. **Duplicate Prevention**
-   - Create same application twice
-   - Expected: Second attempt fails ❌
-
-### Verification Queries
-
-```sql
--- Check for duplicates (should return 0 rows)
-SELECT Student__c, Job__c, COUNT(Id)
-FROM Application__c
-GROUP BY Student__c, Job__c
-HAVING COUNT(Id) > 1
-
--- View all applications
-SELECT Name, Student__r.Name, Job__r.Name, Status__c
-FROM Application__c
-ORDER BY CreatedDate DESC
-```
-
-## Governor Limits Compliance
-
-| Operation | Queries Used | Limit | % Used |
-|-----------|--------------|-------|--------|
-| validateApplications() | 3 | 100 | 3% |
-| submitApplication() | 3 | 100 | 3% |
-
-All methods are **bulk-safe** and handle up to 10,000 records per transaction.
-
-## Security
-
-- All classes use `with sharing` keyword for enforcing record-level security
-- Field-level security respected through SOQL queries
-- Custom exceptions prevent information leakage
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue:** "Student does not meet the minimum CGPA requirement"
-- **Solution:** Verify student CGPA vs. job minimum CGPA requirement
-
-**Issue:** "This student has already applied for this job"
-- **Solution:** Check existing applications; delete if duplicate test data
-
-**Issue:** Deployment fails with "Invalid field" error
-- **Solution:** Ensure all custom objects and fields are deployed before classes
-
-## Roadmap
-
-### Planned Features
-- Lightning Web Components for student portal
-- Email notifications on application status change
-- Batch processing for expired jobs
-- Integration with external recruitment systems
-- Advanced reporting and analytics
-
-## Contributing
-
-When extending this system:
-1. Follow the existing architecture patterns
-2. Keep all code bulk-safe
-3. Add validation in ApplicationService, not in triggers
-4. Update documentation for new features
-5. Test with both single and bulk records
-
-## Support
-
-For issues or questions:
-- Check the `docs/` folder for detailed guides
-- Review `ARCHITECTURE.md` for design decisions
-- See `FEATURES.md` for feature specifications
-
-## License
-
-Internal use only — Campus Placement Management System
+A Salesforce application built during the Bridge Program to manage campus placements — students, jobs, applications, and offer letters — all in one place.
 
 ---
 
-**Version:** 1.0 (Day 1 + Day 2 Combined)  
-**Last Updated:** 2024  
-**Status:** Production Ready ✅
+## What This Is
+
+This is a clean, production-ready version of the project built day by day through the Bridge Program. Each day added something new — from the data model all the way to the UI.
+
+---
+
+## What's Built So Far
+
+### Day 1 — Data Model & Trigger Basics
+
+Set up the foundation. Three custom objects, relationships between them, and a trigger that validates CGPA before an application is saved.
+
+**Objects:**
+- `Student__c` — Student profiles with CGPA, department, backlogs
+- `Job__c` — Job postings with minimum CGPA, salary, closing date
+- `Application__c` — Links students to jobs with status tracking
+
+**Code:**
+- `PlacementService.cls` — Utility methods for querying students and jobs
+- `ApplicationTrigger.trigger` — Fires before insert on Application__c
+
+---
+
+### Day 2 — Trigger Handler Pattern & Service Layer
+
+Refactored the trigger into a proper architecture. Business logic moved out of the trigger and into a service class.
+
+```
+ApplicationTrigger (3 lines)
+    ↓
+ApplicationTriggerHandler
+    ↓
+ApplicationService
+    ├── validateApplications()   ← CGPA check + duplicate check
+    └── submitApplication()      ← Used by LWC components
+```
+
+**What the validation does:**
+- Blocks application if student CGPA is below job minimum
+- Blocks duplicate applications (same student, same job)
+- Processes any number of records safely (bulk-safe)
+
+---
+
+### Day 3 — Validation Rules & Flows *(Done in Salesforce UI)*
+
+Added declarative automation on top of the Apex layer.
+
+- **Validation Rule:** Can't apply after job closing date
+- **Validation Rule:** Student field is required
+- **Flow:** Auto-sets Application Date on create
+- **Flow:** Auto-creates Offer Letter when status changes to Selected
+- **New Object:** `Offer_Letter__c` — tracks issued offer letters
+
+---
+
+### Day 4 — First LWC Component
+
+Built the first UI component: a Placement Dashboard that shows a summary of the system.
+
+```
+┌─────────────────────────────────────┐
+│  Placement Dashboard          🎓    │
+│  Welcome, Student 👋                │
+│  Here's a quick look at your        │
+│  placement activity.                │
+│                                     │
+│  ┌──────────┐  ┌──────────┐        │
+│  │    3     │  │    2     │        │
+│  │ Students │  │   Jobs   │        │
+│  └──────────┘  └──────────┘        │
+│  ┌──────────┐  ┌──────────┐        │
+│  │    6     │  │    1     │        │
+│  │  Apps    │  │  Offers  │        │
+│  └──────────┘  └──────────┘        │
+└─────────────────────────────────────┘
+```
+
+Values are hardcoded for now. Day 5 will connect them to real data via Apex.
+
+---
+
+## Project Structure
+
+```
+Placement-Management-System/
+├── force-app/
+│   └── main/default/
+│       ├── classes/
+│       │   ├── ApplicationService.cls          ← Core business logic
+│       │   ├── ApplicationTriggerHandler.cls   ← Routes trigger events
+│       │   └── PlacementService.cls            ← Utility queries
+│       ├── triggers/
+│       │   └── ApplicationTrigger.trigger      ← Before insert
+│       ├── objects/
+│       │   ├── Student__c/                     ← Student profiles
+│       │   ├── Job__c/                         ← Job postings
+│       │   └── Application__c/                 ← Application records
+│       └── lwc/
+│           └── placementDashboard/             ← Day 4 dashboard
+├── docs/
+│   ├── ARCHITECTURE.md                         ← Design decisions
+│   ├── FEATURES.md                             ← Feature details
+│   ├── DAY-04-GUIDE.md                         ← Day 4 guide
+│   └── DEPLOYMENT.md                           ← How to deploy
+├── README.md
+└── .forceignore
+```
+
+---
+
+## Data Model
+
+```
+Student__c ──────< Application__c >────── Job__c
+   │                                         │
+   └── CGPA__c                    Minimum_CGPA__c ┘
+   └── Active_Backlogs__c      Allowed_Backlogs__c ┘
+
+Application__c ──── Offer_Letter__c
+   └── Status = Selected → Offer Letter auto-created (Flow)
+```
+
+---
+
+## Business Rules
+
+| Rule | Type | Where |
+|------|------|--------|
+| CGPA must meet job minimum | Apex | ApplicationService |
+| No duplicate applications | Apex | ApplicationService |
+| Can't apply after closing date | Validation Rule | Salesforce UI |
+| Student field is required | Validation Rule | Salesforce UI |
+| Application Date auto-set | Flow | Salesforce UI |
+| Offer Letter auto-created on Selected | Flow | Salesforce UI |
+
+---
+
+## Deploy
+
+```bash
+# Deploy everything
+sf project deploy start
+
+# Deploy only classes
+sf project deploy start --source-dir force-app/main/default/classes
+
+# Deploy only LWC
+sf project deploy start --source-dir force-app/main/default/lwc
+```
+
+---
+
+## Progress
+
+| Day | Topic | Status |
+|-----|-------|--------|
+| Day 1 | Data Model, SOQL, Apex Basics, Triggers | ✅ Done |
+| Day 2 | Collections, Bulkification, Handler Pattern, Service Layer | ✅ Done |
+| Day 3 | Validation Rules, Flows, Declarative Automation | ✅ Done |
+| Day 4 | Lightning Web Components Basics | ✅ Done |
+| Day 5 | Service Architecture & Apex Integration | 🔜 Next |
+| Day 6 | Enterprise Trigger Framework | ⬜ |
+| Day 7 | Performance & Scale | ⬜ |
+| Day 8 | Async Apex | ⬜ |
+| Day 9 | Interactive Student Portal | ⬜ |
+| Day 10 | Component Communication & LDS | ⬜ |
+| Day 11 | APIs, REST Integration, Named Credentials | ⬜ |

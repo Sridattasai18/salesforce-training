@@ -1,0 +1,20 @@
+# Salesforce cache and org data
+.sf/
+.sfdx/
+.localhistory/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,64 @@
+<template>
+    <lightning-card title="Edit Profile" icon-name="standard:edit_form">
+        <div class="slds-p-around_medium">
+            <template lwc:if={studentId}>
+                <lightning-record-edit-form 
+                    record-id={studentId} 
+                    object-api-name="Student__c"
+                    onsuccess={handleSuccess}
+                    onerror={handleError}>
+                    
+                    <div class="slds-grid slds-wrap slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input-field 
+                                field-name="Name" 
+                                required>
+                            </lightning-input-field>
+                        </div>
+                        
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input-field 
+                                field-name="Email__c" 
+                                required>
+                            </lightning-input-field>
+                        </div>
+                        
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input-field 
+                                field-name="Department__c" 
+                                required>
+                            </lightning-input-field>
+                        </div>
+                        
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input-field 
+                                field-name="CGPA__c" 
+                                required>
+                            </lightning-input-field>
+                        </div>
+                    </div>
+                    
+                    <div class="slds-m-top_medium">
+                        <lightning-button 
+                            variant="brand" 
+                            type="submit" 
+                            label="Save Profile">
+                        </lightning-button>
+                        <lightning-button 
+                            variant="neutral" 
+                            label="Cancel"
+                            onclick={handleCancel}
+                            class="slds-m-left_small">
+                        </lightning-button>
+                    </div>
+                </lightning-record-edit-form>
+            </template>
+            
+            <template lwc:else>
+                <div class="slds-text-align_center slds-text-color_weak">
+                    <p>No student profile available for editing.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

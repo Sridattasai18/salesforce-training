@@ -12,77 +12,46 @@ This is a clean, production-ready version of the project built day by day throug
 
 ## What's Built So Far
 
-### Day 1 — Data Model & Trigger Basics
+### Full-Stack Salesforce Application
 
-Set up the foundation. Three custom objects, relationships between them, and a trigger that validates CGPA before an application is saved.
+A complete placement management system with:
 
-**Objects:**
-- `Student__c` — Student profiles with CGPA, department, backlogs
-- `Job__c` — Job postings with minimum CGPA, salary, closing date
-- `Application__c` — Links students to jobs with status tracking
+**Core Architecture (Days 1-3):**
+- Custom objects with relationships (Student, Job, Application, Offer Letter)
+- Enterprise trigger framework (Trigger → Handler → Service pattern)
+- Declarative automation (validation rules, flows)
+- SOQL queries with aggregate functions
 
-**Code:**
-- `PlacementService.cls` — Utility methods for querying students and jobs
-- `ApplicationTrigger.trigger` — Fires before insert on Application__c
+**Service Layer (Days 5-7):**
+- ApplicationService — business logic for applications
+- StudentService — student operations
+- JobService — job management
+- OfferService — offer letter handling
+- AnalyticsService — aggregate queries for reporting
+- PlacementService — shared utilities
 
----
+**Asynchronous Processing (Day 8):**
+- Queueable: ApplicationPostProcessingJob (notifications after apply)
+- Batch: PlacementStatisticsBatch (analytics refresh)
+- Scheduled: JobExpirationScheduler (auto-close expired jobs)
+- External sync: CandidateSyncJob (integrate with external systems)
 
-### Day 2 — Trigger Handler Pattern & Service Layer
+**User Interface (Days 4, 9, 10):**
+- placementDashboard — live statistics dashboard
+- studentPortal — parent component orchestrating student view
+- eligibleJobs — shows jobs student can apply for with Apply button
+- myApplications — shows student's application history
+- jobCard, applicationCard — reusable card components
+- studentSummary, studentProfileForm — student profile management
+- Parent-child communication with custom events
+- Lightning Data Service for automatic refresh
 
-Refactored the trigger into a proper architecture. Business logic moved out of the trigger and into a service class.
-
-```
-ApplicationTrigger (3 lines)
-    ↓
-ApplicationTriggerHandler
-    ↓
-ApplicationService
-    ├── validateApplications()   ← CGPA check + duplicate check
-    └── submitApplication()      ← Used by LWC components
-```
-
-**What the validation does:**
-- Blocks application if student CGPA is below job minimum
-- Blocks duplicate applications (same student, same job)
-- Processes any number of records safely (bulk-safe)
-
----
-
-### Day 3 — Validation Rules & Flows *(Done in Salesforce UI)*
-
-Added declarative automation on top of the Apex layer.
-
-- **Validation Rule:** Can't apply after job closing date
-- **Validation Rule:** Student field is required
-- **Flow:** Auto-sets Application Date on create
-- **Flow:** Auto-creates Offer Letter when status changes to Selected
-- **New Object:** `Offer_Letter__c` — tracks issued offer letters
-
----
-
-### Day 4 — First LWC Component
-
-Built the first UI component: a Placement Dashboard that shows a summary of the system.
-
-```
-┌─────────────────────────────────────┐
-│  Placement Dashboard          🎓    │
-│  Welcome, Student 👋                │
-│  Here's a quick look at your        │
-│  placement activity.                │
-│                                     │
-│  ┌──────────┐  ┌──────────┐        │
-│  │    3     │  │    2     │        │
-│  │ Students │  │   Jobs   │        │
-│  └──────────┘  └──────────┘        │
-│  ┌──────────┐  ┌──────────┐        │
-│  │    6     │  │    1     │        │
-│  │  Apps    │  │  Offers  │        │
-│  └──────────┘  └──────────┘        │
-└─────────────────────────────────────┘
-```
-
-Values are hardcoded for now. Day 5 will connect them to real data via Apex.
+**Integration (Day 11):**
+- REST API endpoints:
+  - GET `/services/apexrest/placement/jobs` — list all jobs
+  - GET `/services/apexrest/placement/students` — list all students
+  - POST `/services/apexrest/placement/apply` — submit application
+- JSON serialization for external system communication
 
 ---
 
@@ -93,23 +62,52 @@ Placement-Management-System/
 ├── force-app/
 │   └── main/default/
 │       ├── classes/
-│       │   ├── ApplicationService.cls          ← Core business logic
-│       │   ├── ApplicationTriggerHandler.cls   ← Routes trigger events
-│       │   └── PlacementService.cls            ← Utility queries
+│       │   ├── ApplicationService.cls              ← Core business logic
+│       │   ├── ApplicationTriggerHandler.cls       ← Routes trigger events
+│       │   ├── ApplicationController.cls           ← LWC controller for myApplications
+│       │   ├── ApplicationPostProcessingJob.cls    ← Queueable (Day 8)
+│       │   ├── StudentService.cls                  ← Student operations
+│       │   ├── StudentTriggerHandler.cls           ← Student validation
+│       │   ├── StudentPortalController.cls         ← Portal controller (Day 9)
+│       │   ├── JobService.cls                      ← Job operations
+│       │   ├── JobTriggerHandler.cls               ← Job validation
+│       │   ├── JobExpirationScheduler.cls          ← Scheduled Apex (Day 8)
+│       │   ├── OfferService.cls                    ← Offer letter handling
+│       │   ├── PlacementService.cls                ← Utility queries
+│       │   ├── PlacementServiceTest.cls            ← Test coverage
+│       │   ├── PlacementDashboardController.cls    ← Dashboard controller
+│       │   ├── PlacementStatisticsBatch.cls        ← Batch Apex (Day 8)
+│       │   ├── PlacementApi.cls                    ← REST API (Day 11)
+│       │   ├── AnalyticsService.cls                ← Analytics queries (Day 7)
+│       │   ├── CandidateSyncJob.cls                ← External sync (Day 8)
+│       │   └── ExternalPlacementService.cls        ← External callouts
 │       ├── triggers/
-│       │   └── ApplicationTrigger.trigger      ← Before insert
+│       │   ├── ApplicationTrigger.trigger          ← Before insert/update
+│       │   ├── StudentTrigger.trigger              ← Before insert/update
+│       │   └── JobTrigger.trigger                  ← Before insert/update
 │       ├── objects/
-│       │   ├── Student__c/                     ← Student profiles
-│       │   ├── Job__c/                         ← Job postings
-│       │   └── Application__c/                 ← Application records
+│       │   ├── Student__c/                         ← Student profiles
+│       │   ├── Job__c/                             ← Job postings
+│       │   ├── Application__c/                     ← Application records
+│       │   ├── Offer_Letter__c/                    ← Offer letters
+│       │   └── Integration_Log__c/                 ← Integration tracking
 │       └── lwc/
-│           └── placementDashboard/             ← Day 4 dashboard
+│           ├── placementDashboard/                 ← Dashboard (Day 4)
+│           ├── studentPortal/                      ← Portal parent (Day 10)
+│           ├── eligibleJobs/                       ← Job listing (Day 9)
+│           ├── myApplications/                     ← Application history (Day 10)
+│           ├── jobCard/                            ← Job card component
+│           ├── applicationCard/                    ← Application card component
+│           ├── studentSummary/                     ← Student summary
+│           ├── studentProfileForm/                 ← Profile editor (Day 10)
+│           └── profileForm/                        ← Profile form
 ├── docs/
-│   ├── ARCHITECTURE.md                         ← Design decisions
-│   ├── FEATURES.md                             ← Feature details
-│   ├── DAY-04-GUIDE.md                         ← Day 4 guide
-│   └── DEPLOYMENT.md                           ← How to deploy
+│   ├── ARCHITECTURE.md                             ← Design decisions
+│   ├── FEATURES.md                                 ← Feature details
+│   ├── DAY-04-GUIDE.md                             ← Day 4 guide
+│   └── DAY-05-GUIDE.md                             ← Day 5 guide
 ├── README.md
+├── DEPLOYMENT.md
 └── .forceignore
 ```
 
@@ -165,10 +163,53 @@ sf project deploy start --source-dir force-app/main/default/lwc
 | Day 2 | Collections, Bulkification, Handler Pattern, Service Layer | ✅ Done |
 | Day 3 | Validation Rules, Flows, Declarative Automation | ✅ Done |
 | Day 4 | Lightning Web Components Basics | ✅ Done |
-| Day 5 | Service Architecture & Apex Integration | 🔜 Next |
-| Day 6 | Enterprise Trigger Framework | ⬜ |
-| Day 7 | Performance & Scale | ⬜ |
-| Day 8 | Async Apex | ⬜ |
-| Day 9 | Interactive Student Portal | ⬜ |
-| Day 10 | Component Communication & LDS | ⬜ |
-| Day 11 | APIs, REST Integration, Named Credentials | ⬜ |
+| Day 5 | Service Architecture & Apex Integration | ✅ Done |
+| Day 6 | Enterprise Trigger Framework | ✅ Done |
+| Day 7 | Performance & Scale (Analytics, Bulk Processing) | ✅ Done |
+| Day 8 | Async Apex (Queueable, Batch, Scheduled) | ✅ Done |
+| Day 9 | Interactive Student Portal with Eligible Jobs | ✅ Done |
+| Day 10 | Component Communication & Lightning Data Service | ✅ Done |
+| Day 11 | REST API Integration | ✅ Done |
+
+---
+
+## Complete Features
+
+### Day 5-11 Additions
+
+**Day 5:** Connected UI to real Apex controllers
+- PlacementDashboardController with live counts
+- Service architecture for job eligibility filtering
+
+**Day 6:** Enterprise trigger framework
+- StudentTriggerHandler (CGPA validation)
+- JobTriggerHandler (auto-close expired jobs)
+- Proper separation: Trigger → Handler → Service
+
+**Day 7:** Performance optimization
+- AnalyticsService with aggregate queries
+- Bulk-safe operations using Maps and Sets
+- PlacementStatisticsBatch for background analytics
+
+**Day 8:** Asynchronous processing
+- ApplicationPostProcessingJob (Queueable)
+- PlacementStatisticsBatch (Batch Apex)
+- JobExpirationScheduler (Scheduled Apex)
+- CandidateSyncJob for external integration
+
+**Day 9:** Interactive student portal
+- StudentPortalController with eligibility filtering
+- eligibleJobs LWC with Apply button
+- Real-time job applications from UI
+
+**Day 10:** Multi-component architecture
+- Parent-child communication (studentPortal → eligibleJobs → myApplications)
+- Custom events for data refresh
+- Lightning Data Service integration
+- applicationCard and studentProfileForm components
+
+**Day 11:** REST API
+- PlacementApi with GET/POST endpoints
+- External systems can fetch jobs/students
+- API endpoint to submit applications
+- JSON serialization/deserialization

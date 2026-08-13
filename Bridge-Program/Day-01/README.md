@@ -1,275 +1,199 @@
-[[Day-1 – Salesforce Developer Bridge Program]]
-# Salesforce Developer Bridge Program – Day 1 Summary
+# Placement Management System – Day 1
 
-## Block 1 – Data Model (Task 1)
+## What Is This?
 
-### What I Learned
-
-- Understood the purpose of a Salesforce data model and how custom objects, fields, and relationships organize business data.
-    
-- Learned the difference between **Lookup Relationship** and **Master-Detail Relationship**.
-    
-- Designed a Hospital OPD Management System using four custom objects:
-    
-    - Patient
-        
-    - Doctor
-        
-    - Appointment
-        
-    - Prescription
-        
-
-### Relationships Used
-
-- Patient → Appointment (Lookup)
-    
-- Doctor → Appointment (Lookup)
-    
-- Appointment → Prescription (Master-Detail)
-    
-
-### Outcome
-
-Successfully created the Hospital OPD data model and verified the relationships using Schema Builder.
+A Salesforce-based system that lets students apply for jobs and automatically checks whether they're eligible based on CGPA. Built from scratch using custom objects, Apex, and triggers.
 
 ---
 
-# Block 2 – Apex Basics (Task 2)
+## Objects
 
-### What I Learned
+### Student__c
+Stores student information.
 
-- Learned Apex classes, methods, variables, and DML operations.
-    
-- Created an Apex class to insert Patient records.
-    
-- Practiced different Apex data types.
-    
-- Executed Apex code using Execute Anonymous.
-    
+| Field | API Name | Type |
+|---|---|---|
+| Student Name | Name | Text |
+| Roll Number | Roll_Number__c | Number |
+| Department | Department__c | Picklist |
+| CGPA | CGPA__c | Number (decimal) |
+| Active Backlogs | Active_Backlogs__c | Number |
+| Placement Status | Placement_Status__c | Picklist |
+| Email | Email__c | Email |
 
-### Sample Apex Code
+### Job__c
+Stores job postings from companies.
+
+| Field | API Name | Type |
+|---|---|---|
+| Job Name | Name | Text |
+| Company | Company__c | Text |
+| Minimum CGPA | Minimum_CGPA__c | Number (decimal) |
+| Allowed Backlogs | Allowed_Backlogs__c | Number |
+| Location | Location__c | Text |
+| Salary | Salary__c | Currency |
+| Closing Date | Closing_Date__c | Date |
+| Status | Status__c | Picklist |
+
+### Application__c
+Links a student to a job (junction object).
+
+| Field | API Name | Type |
+|---|---|---|
+| Student | Student__c | Lookup → Student__c |
+| Job | Job__c | Lookup → Job__c |
+| Status | Status__c | Picklist |
+| Application Date | Application_Date__c | Date |
+
+---
+
+## Object Relationships
+
+```
+Student__c ──────┐
+                 ├──► Application__c
+Job__c ──────────┘
+```
+
+Both are Lookup relationships — deleting a student or job does not cascade delete the application.
+
+---
+
+## Features Built
+
+- Custom data model with 3 objects and lookup relationships
+- SOQL queries across all 3 objects including cross-object joins
+- Apex service class with reusable methods
+- Before Insert trigger with automatic CGPA eligibility check
+- Bulkified trigger (safe for bulk data loads)
+
+---
+
+## Apex Components
+
+### PlacementService.cls
 
 ```apex
-public class PatientService {
-    public static void addPatient() {
-        Patient__c p = new Patient__c(
-            Name='Datta',
-            Age__c=17,
-            Gender__c='Male'
-        );
-        insert p;
-    }
+public with sharing class PlacementService {
+
+    // Returns students with CGPA >= minimumCGPA
+    public static List<Student__c> getEligibleStudents(Decimal minimumCGPA)
+
+    // Returns students from a specific department
+    public static List<Student__c> getStudentsByDepartment(String department)
+
+    // Creates a new application linking student and job
+    public static Application__c createApplication(Id studentId, Id jobId)
 }
 ```
 
-### Outcome
+### ApplicationTrigger.trigger + ApplicationTriggerHandler.cls
 
-Successfully created and executed an Apex class for inserting sample records into Salesforce.
+Fires on `before insert` of Application__c.
 
----
+**Logic:**
+1. Collect all Student IDs and Job IDs from the batch
+2. Query students and jobs in two SOQL calls
+3. Build Maps for fast lookup
+4. Compare each student's CGPA against their target job's minimum
+5. Block the save with `addError()` if CGPA is too low
 
-# Task 3 – SOQL Practice
+**Examples:**
+- Rahul (9.0 CGPA) → Microsoft (min 8.0) → ✅ Saved
+- Kiran (7.0 CGPA) → Microsoft (min 8.0) → ❌ Blocked
 
-### What I Learned
-
-Using the Hospital OPD data model, I inserted sample Patient, Doctor, Appointment, and Prescription records and practiced different types of SOQL queries.
-
-## Query 1 – WHERE Clause
-
-```sql
-SELECT Name, Status__c
-FROM Appointment__c
-WHERE Status__c='Scheduled'
-```
-
-**Purpose:** Retrieves only Scheduled appointments.
+**Error message shown to user:**
+> Student is not eligible for this job because the CGPA requirement is not met.
 
 ---
 
-## Query 2 – ORDER BY + LIMIT
+## SOQL Queries Used
 
 ```sql
-SELECT Name, Appointment_Date__c
-FROM Appointment__c
-ORDER BY Appointment_Date__c DESC
-LIMIT 2
-```
+-- Get all eligible students
+SELECT Id, Name, CGPA__c
+FROM Student__c
+WHERE CGPA__c >= 8.0
 
-**Purpose:** Displays the latest two appointments.
-
----
-
-## Query 3 – Relationship Query
-
-```sql
+-- Get applications with student and job names
 SELECT Name,
-       Patient__r.Name,
-       Doctor__r.Name
-FROM Appointment__c
-```
+       Student__r.Name,
+       Job__r.Name,
+       Job__r.Company__c,
+       Status__c
+FROM Application__c
 
-**Purpose:** Retrieves Appointment, Patient, and Doctor details using a child-to-parent relationship.
+-- Count applications per student
+SELECT Student__r.Name, COUNT(Id) total
+FROM Application__c
+GROUP BY Student__r.Name
+```
 
 ---
 
-## Query 4 – Aggregate Query
+## Project Structure
 
-```sql
-SELECT COUNT()
-FROM Appointment__c
 ```
+force-app/main/default/
+├── objects/
+│   ├── Student__c/
+│   ├── Job__c/
+│   └── Application__c/
+├── classes/
+│   ├── PlacementService.cls
+│   ├── PlacementService.cls-meta.xml
+│   ├── PlacementServiceTest.cls
+│   └── PlacementServiceTest.cls-meta.xml
+└── triggers/
+    ├── ApplicationTrigger.trigger
+    └── ApplicationTrigger.trigger-meta.xml
 
-**Purpose:** Counts the total number of Appointment records.
+Bridge-Program/Day-01/
+├── code/
+│   ├── PlacementService.cls
+│   ├── PlacementServiceTest.cls
+│   ├── ApplicationTriggerHandler.cls
+│   └── triggers/
+│       └── ApplicationTrigger.trigger
+├── day-1-notes.md
+└── README.md  ← this file
+```
 
 ---
 
-## Query 5 – Comparison Operator
+## Test Results
 
-```sql
-SELECT Name, Appointment_Date__c
-FROM Appointment__c
-WHERE Appointment_Date__c >= TODAY
 ```
-
-**Purpose:** Retrieves appointments scheduled today or later.
-
-### Outcome
-
-All five SOQL queries executed successfully without syntax errors and the results were saved for submission.
+Test Class:   PlacementServiceTest
+Tests Run:    1
+Passed:       1
+Failed:       0
+Pass Rate:    100%
+```
 
 ---
 
-# Block 3 – Apex Triggers (Task 4)
+## Day 1 Learning Outcomes
 
-### What I Learned
-
-- Learned how Apex Triggers automate business processes.
-    
-- Used the Trigger–Handler design pattern.
-    
-- Created a trigger on the Appointment object.
-    
-
-## Trigger Code
-
-```apex
-trigger AppointmentTrigger on Appointment__c (
-    before insert,
-    after update
-) {
-
-    if (Trigger.isBefore && Trigger.isInsert) {
-        AppointmentTriggerHandler.preventDuplicateAppointments(Trigger.new);
-    }
-
-    if (Trigger.isAfter && Trigger.isUpdate) {
-        AppointmentTriggerHandler.updatePatientLastVisit(Trigger.new);
-    }
-
-}
-```
-
-## Handler Class
-
-```apex
-public class AppointmentTriggerHandler {
-
-    public static void preventDuplicateAppointments(List<Appointment__c> newAppointments) {
-        // Checks existing appointments and blocks duplicates
-    }
-
-    public static void updatePatientLastVisit(List<Appointment__c> updatedAppointments) {
-        // Updates Last Visit Date when appointment is completed
-    }
-
-}
-```
-
-### Business Requirements
-
-- Before Insert → Prevent duplicate appointments for the same patient on the same date.
-    
-- After Update → Update the Patient's Last Visit Date when the appointment status becomes **Completed**.
-    
-
-### Outcome
-
-Successfully implemented the Trigger–Handler pattern and tested both automation scenarios.
+| Topic | Where it appears |
+|---|---|
+| Custom Objects & Fields | Student__c, Job__c, Application__c |
+| Lookup Relationships | Application__c → Student/Job |
+| SOQL | All queries, cross-object joins |
+| Apex Class | PlacementService.cls |
+| DML | `insert app` in createApplication() |
+| Trigger | ApplicationTrigger — before insert |
+| Bulkification | No SOQL in loops, Map-based lookup |
+| Test Class | PlacementServiceTest.cls |
+| addError() | Blocking ineligible applications |
 
 ---
 
-# Block 4 – Lightning Web Components (Task 5)
+## What Day 2 Adds
 
-### Component
-
-**Component Name:** `patientList`
-
-### Purpose
-
-Displays Patient records from the custom `Patient__c` object using Apex and the `@wire` service.
-
-### Concepts Used
-
-- Lightning Web Components (LWC)
-    
-- Apex Controller
-    
-- SOQL
-    
-- @wire
-    
-- cacheable=true
-    
-- for:each
-    
-- if:true
-    
-- SLDS
-    
-
-### Files Included
-
-- patientList.html
-    
-- patientList.js
-    
-- patientList.js-meta.xml
-    
-- PatientController.cls
-    
-
-### LWC ZIP / Drive Link
-
-**ZIP File:** _(Attach your patientList.zip here in the submission.)_
-
-**Google Drive Link:**
-
-```
-https://drive.google.com/file/d/1iVK4VuAMfrX0F6SREa5WXuFYuWkS5wwh/view?usp=drive_link
-```
-
-### Outcome
-
-Successfully deployed the LWC, displayed Patient records, and handled Loading, Success, Error, and Empty states using Apex and the `@wire` service.
-
----
-
-# Overall Learning Outcome
-
-By the end of Day 1, I was able to:
-
-- Design a complete Salesforce data model using custom objects and relationships.
-    
-- Write Apex classes and perform DML operations.
-    
-- Insert sample records into Salesforce.
-    
-- Write and execute various SOQL queries, including filtering, sorting, relationship, aggregate, and comparison queries.
-    
-- Build Apex Triggers using the Trigger–Handler pattern.
-    
-- Understand trigger best practices such as bulkification and governor limits.
-    
-- Develop and deploy a Lightning Web Component integrated with Apex and SOQL using the `@wire` service.
----
+Day 1 built a working system. Day 2 turns it into production-quality code:
+- Trigger Handler Pattern (refactor the trigger)
+- Duplicate application prevention
+- StudentService, JobService, ApplicationService
+- Collections deep dive (List, Set, Map)
+- Governor limits in practice

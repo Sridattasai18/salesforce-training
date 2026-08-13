@@ -60,6 +60,13 @@ public with sharing class ApplicationTriggerHandler {
         }
     }
 
+    public static void afterInsert(List<Application__c> applications) {
+
+        for (Application__c app : applications) {
+            System.enqueueJob(new ApplicationPostProcessingJob(app.Id));
+        }
+    }
+
     public static void handleAfterUpdate(List<Application__c> newList, Map<Id, Application__c> oldMap) {
         List<Id> selectedAppIds = new List<Id>();
 

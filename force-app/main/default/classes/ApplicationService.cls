@@ -55,6 +55,21 @@ public with sharing class ApplicationService {
         return app.Id;
     }
 
+    public static Integer getApplicationCount() {
+        return [SELECT COUNT() FROM Application__c];
+    }
+
+    public static List<Application__c> getApplicationsForStudent(Id studentId) {
+        return [
+            SELECT Id, Name, Status__c,
+                   Job__r.Name,
+                   Job__r.Company__c
+            FROM Application__c
+            WHERE Student__c = :studentId
+            ORDER BY CreatedDate DESC
+        ];
+    }
+
     public static void validateApplications(List<Application__c> applications) {
 
         Set<Id> studentIds = new Set<Id>();

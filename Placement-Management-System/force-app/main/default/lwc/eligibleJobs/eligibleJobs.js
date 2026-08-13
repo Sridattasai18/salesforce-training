@@ -21,7 +21,7 @@ export default class EligibleJobs extends LightningElement {
 
     async handleApply(event) {
 
-        const jobId = event.target.dataset.id;
+        const jobId = event.detail;
 
         try {
             await applyForJob({

@@ -3,21 +3,11 @@
 
         <template if:true={jobs}>
             <template for:each={jobs} for:item="job">
-                <div key={job.Id} class="slds-box slds-m-around_small">
-
-                    <p><strong>{job.Name}</strong></p>
-                    <p>{job.Company__c}</p>
-                    <p>CGPA: {job.Minimum_CGPA__c}</p>
-                    <p>Location: {job.Location__c}</p>
-
-                    <lightning-button
-                        label="Apply"
-                        data-id={job.Id}
-                        onclick={handleApply}
-                        class="slds-m-top_small">
-                    </lightning-button>
-
-                </div>
+                <c-job-card
+                    key={job.Id}
+                    job={job}
+                    onapply={handleApply}>
+                </c-job-card>
             </template>
         </template>
 

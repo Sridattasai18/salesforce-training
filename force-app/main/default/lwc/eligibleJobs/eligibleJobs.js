@@ -39,10 +39,16 @@ export default class EligibleJobs extends LightningElement {
             await refreshApex(this.wiredResult);
 
         } catch (error) {
+            const message =
+                error?.body?.message ||
+                error?.body?.pageErrors?.[0]?.message ||
+                error?.message ||
+                'Something went wrong. Please try again.';
+
             this.dispatchEvent(
                 new ShowToastEvent({
-                    title: 'Error',
-                    message: error.body.message,
+                    title: 'Application Failed',
+                    message: message,
                     variant: 'error'
                 })
             );

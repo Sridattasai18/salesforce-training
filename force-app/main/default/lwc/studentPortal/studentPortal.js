@@ -3,8 +3,8 @@ import getStudents from '@salesforce/apex/StudentPortalController.getStudents';
 
 export default class StudentPortal extends LightningElement {
     students = [];
-    selectedStudentId;
-    student;
+    selectedStudentId = null;
+    student = null;
     error;
 
     @wire(getStudents)
@@ -17,7 +17,7 @@ export default class StudentPortal extends LightningElement {
         } else if (error) {
             this.error = error;
             this.students = [];
-            this.student = undefined;
+            this.student = null;
         }
     }
 

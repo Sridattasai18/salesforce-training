@@ -2,24 +2,41 @@
     <lightning-card title="Apply for a Job">
         <div class="slds-p-around_medium">
 
-            <lightning-combobox
-                label="Select Student"
-                value={selectedStudentId}
-                options={studentOptions}
-                onchange={handleStudentChange}>
-            </lightning-combobox>
+            <template if:true={error}>
+                <div class="slds-text-color_error">
+                    Error loading students: {error.body.message}
+                </div>
+            </template>
 
-            <c-student-summary
-                student={student}>
-            </c-student-summary>
+            <template if:true={hasStudents}>
+                <lightning-combobox
+                    label="Select Student"
+                    value={selectedStudentId}
+                    options={studentOptions}
+                    onchange={handleStudentChange}>
+                </lightning-combobox>
 
-            <c-eligible-jobs
-                student-id={selectedStudentId}>
-            </c-eligible-jobs>
+                <c-student-summary
+                    student={student}>
+                </c-student-summary>
 
-            <c-profile-form
-                student-id={selectedStudentId}>
-            </c-profile-form>
+                <c-eligible-jobs
+                    student-id={selectedStudentId}>
+                </c-eligible-jobs>
+
+                <c-profile-form
+                    student-id={selectedStudentId}>
+                </c-profile-form>
+            </template>
+
+            <template if:false={hasStudents}>
+                <template if:false={error}>
+                    <div class="slds-text-align_center slds-p-around_large">
+                        <lightning-spinner alternative-text="Loading students..."></lightning-spinner>
+                        <p class="slds-m-top_small">Loading students...</p>
+                    </div>
+                </template>
+            </template>
 
         </div>
     </lightning-card>

@@ -5,13 +5,19 @@ export default class StudentPortal extends LightningElement {
     students = [];
     selectedStudentId;
     student;
+    error;
 
     @wire(getStudents)
     wiredStudents({ data, error }) {
-        if (data) {
+        if (data && data.length > 0) {
             this.students = data;
             this.selectedStudentId = data[0].Id;
             this.student = data[0];
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.students = [];
+            this.student = undefined;
         }
     }
 
@@ -20,6 +26,10 @@ export default class StudentPortal extends LightningElement {
             label: student.Name,
             value: student.Id
         }));
+    }
+
+    get hasStudents() {
+        return this.students && this.students.length > 0;
     }
 
     handleStudentChange(event) {

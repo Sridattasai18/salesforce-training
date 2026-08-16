@@ -45,17 +45,20 @@ public with sharing class ApplicationTriggerHandler {
             if (student == null || job == null) continue;
 
             if (student.CGPA__c < job.Minimum_CGPA__c) {
-                app.addError('Student does not meet the minimum CGPA requirement.');
+                app.addError('You are not eligible for this job. Your CGPA (' + 
+                    student.CGPA__c + ') is below the required minimum (' + job.Minimum_CGPA__c + ').');
             }
 
             if (student.Active_Backlogs__c > job.Allowed_Backlogs__c) {
-                app.addError('Student exceeds the allowed backlog limit.');
+                app.addError('You are not eligible for this job. You have ' + 
+                    student.Active_Backlogs__c + ' active backlogs but this job allows only ' + 
+                    job.Allowed_Backlogs__c + '.');
             }
 
             String key = app.Student__c + '-' + app.Job__c;
 
             if (existingApplications.contains(key)) {
-                app.addError('Student has already applied for this job.');
+                app.addError('You have already applied for this job. You cannot apply again.');
             }
         }
     }

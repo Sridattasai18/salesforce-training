@@ -11,25 +11,36 @@ public with sharing class ApplicationService {
         ];
 
         if (students.isEmpty()) {
-            throw new ApplicationException('No student record found.');
+            throw new ApplicationException('No student record found. Please ensure a student is properly configured.');
         }
 
         Student__c student = students[0];
 
         List<Job__c> jobs = [
-            SELECT Id, Minimum_CGPA__c
+            SELECT Id, Minimum_CGPA__c, Closing_Date__c, Status__c
             FROM Job__c
             WHERE Id = :jobId
         ];
 
         if (jobs.isEmpty()) {
-            throw new ApplicationException('Job not found.');
+            throw new ApplicationException('Job posting not found. Please refresh and try again.');
         }
 
         Job__c job = jobs[0];
 
+        // Check if job is closed
+        if (job.Status__c == 'Closed') {
+            throw new ApplicationException('This job is no longer accepting applications.');
+        }
+
+        // Check closing date
+        if (job.Closing_Date__c != null && job.Closing_Date__c < Date.today()) {
+            throw new ApplicationException('This job is no longer accepting applications because the closing date has passed.');
+        }
+
         if (student.CGPA__c < job.Minimum_CGPA__c) {
-            throw new ApplicationException('Student does not meet the minimum CGPA requirement.');
+            throw new ApplicationException('You are not eligible for this job. Your CGPA (' + 
+                student.CGPA__c + ') is below the required minimum (' + job.Minimum_CGPA__c + ').');
         }
 
         List<Application__c> existing = [
@@ -41,7 +52,7 @@ public with sharing class ApplicationService {
         ];
 
         if (!existing.isEmpty()) {
-            throw new ApplicationException('This student has already applied for this job.');
+            throw new ApplicationException('You have already applied for this job. You cannot apply again.');
         }
 
         Application__c app = new Application__c(
@@ -111,13 +122,14 @@ public with sharing class ApplicationService {
             if (student != null && job != null) {
 
                 if (student.CGPA__c < job.Minimum_CGPA__c) {
-                    app.addError('Student does not meet the minimum CGPA requirement.');
+                    app.addError('You are not eligible for this job. Your CGPA (' + 
+                        student.CGPA__c + ') is below the required minimum (' + job.Minimum_CGPA__c + ').');
                 }
 
                 String key = app.Student__c + '-' + app.Job__c;
 
                 if (existingPairs.contains(key)) {
-                    app.addError('This student has already applied for this job.');
+                    app.addError('You have already applied for this job. You cannot apply again.');
                 }
             }
         }

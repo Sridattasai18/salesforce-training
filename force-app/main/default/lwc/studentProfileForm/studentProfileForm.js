@@ -23,10 +23,19 @@ export default class StudentProfileForm extends LightningElement {
     }
 
     handleError(event) {
+        const detail = event.detail;
+
+        // lightning-record-edit-form error structure: detail.detail or detail.message
+        const message =
+            detail?.detail ||
+            detail?.message ||
+            detail?.body?.message ||
+            'Unable to save your profile. Please check your inputs and try again.';
+
         this.dispatchEvent(
             new ShowToastEvent({
-                title: 'Error updating profile',
-                message: event.detail.message || 'An error occurred while updating your profile.',
+                title: 'Profile Update Failed',
+                message: message,
                 variant: 'error'
             })
         );

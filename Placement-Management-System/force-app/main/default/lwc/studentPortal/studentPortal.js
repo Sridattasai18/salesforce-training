@@ -32,6 +32,13 @@ export default class StudentPortal extends LightningElement {
         return this.students && this.students.length > 0;
     }
 
+    get errorMessage() {
+        return this.error?.body?.message ||
+               this.error?.body?.pageErrors?.[0]?.message ||
+               this.error?.message ||
+               'Unable to load students. Please refresh the page and try again.';
+    }
+
     handleStudentChange(event) {
         this.selectedStudentId = event.detail.value;
         this.student = this.students.find(

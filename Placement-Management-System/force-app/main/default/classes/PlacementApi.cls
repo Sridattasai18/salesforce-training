@@ -70,25 +70,64 @@ global with sharing class PlacementApi {
     }
 
     private static String applyForJob() {
+        try {
+            String body = RestContext.request.requestBody.toString();
 
-        String body = RestContext.request.requestBody.toString();
+            Map<String, Object> data =
+                (Map<String, Object>) JSON.deserializeUntyped(body);
 
-        Map<String, Object> data =
-            (Map<String, Object>) JSON.deserializeUntyped(body);
+            String studentId = (String) data.get('studentId');
+            String jobId = (String) data.get('jobId');
 
-        Application__c app = new Application__c(
-            Student__c = (String) data.get('studentId'),
-            Job__c     = (String) data.get('jobId'),
-            Status__c  = 'Applied'
-        );
-
-        insert app;
-
-        return JSON.serialize(
-            new Map<String, String>{
-                'status'        => 'success',
-                'applicationId' => app.Id
+            if (String.isBlank(studentId) || String.isBlank(jobId)) {
+                RestContext.response.statusCode = 400;
+                return JSON.serialize(
+                    new Map<String, String>{
+                        'error' => 'Both studentId and jobId are required'
+                    }
+                );
             }
-        );
+
+            Application__c app = new Application__c(
+                Student__c = studentId,
+                Job__c = jobId,
+                Status__c = 'Applied',
+                Application_Date__c = Date.today()
+            );
+
+            insert app;
+
+            RestContext.response.statusCode = 201;
+            return JSON.serialize(
+                new Map<String, String>{
+                    'status' => 'success',
+                    'applicationId' => app.Id,
+                    'message' => 'Application submitted successfully'
+                }
+            );
+
+        } catch (DmlException e) {
+            RestContext.response.statusCode = 400;
+            return JSON.serialize(
+                new Map<String, String>{
+                    'error' => 'Unable to create application',
+                    'message' => e.getDmlMessage(0)
+                }
+            );
+        } catch (JSONException e) {
+            RestContext.response.statusCode = 400;
+            return JSON.serialize(
+                new Map<String, String>{
+                    'error' => 'Invalid request format. Please provide valid JSON with studentId and jobId.'
+                }
+            );
+        } catch (Exception e) {
+            RestContext.response.statusCode = 500;
+            return JSON.serialize(
+                new Map<String, String>{
+                    'error' => 'An unexpected error occurred while processing your application'
+                }
+            );
+        }
     }
 }

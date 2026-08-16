@@ -7,6 +7,7 @@ export default class PlacementDashboard extends LightningElement {
     jobCount = 0;
     applicationCount = 0;
     offerCount = 0;
+    errorMessage;
 
     @wire(getDashboardData)
     wiredDashboard({ error, data }) {
@@ -15,8 +16,13 @@ export default class PlacementDashboard extends LightningElement {
             this.jobCount         = data.jobCount;
             this.applicationCount = data.applicationCount;
             this.offerCount       = data.offerCount;
+            this.errorMessage     = undefined;
         } else if (error) {
-            console.error('Dashboard load error:', error);
+            this.errorMessage =
+                error?.body?.message ||
+                error?.body?.pageErrors?.[0]?.message ||
+                error?.message ||
+                'Unable to load dashboard data. Please refresh the page and try again.';
         }
     }
 }

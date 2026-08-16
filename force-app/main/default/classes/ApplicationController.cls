@@ -29,8 +29,10 @@ public with sharing class ApplicationController {
                 WITH SECURITY_ENFORCED
                 ORDER BY Application_Date__c DESC, CreatedDate DESC
             ];
+        } catch (QueryException e) {
+            throw new AuraHandledException('Unable to load your applications at this time. Please refresh the page and try again.');
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching applications: ' + e.getMessage());
+            throw new AuraHandledException('An error occurred while loading your applications. Please try again.');
         }
     }
 
@@ -44,8 +46,10 @@ public with sharing class ApplicationController {
                 FROM Job__c
                 ORDER BY Name
             ];
+        } catch (QueryException e) {
+            throw new AuraHandledException('Unable to load available jobs at this time. Please refresh the page and try again.');
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching eligible jobs: ' + e.getMessage());
+            throw new AuraHandledException('An error occurred while loading jobs. Please try again.');
         }
     }
 

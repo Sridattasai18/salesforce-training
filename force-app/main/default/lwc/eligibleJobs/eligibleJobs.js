@@ -1,17 +1,16 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement, wire, api } from 'lwc';
 import getEligibleJobs from '@salesforce/apex/StudentPortalController.getEligibleJobs';
 import applyForJob from '@salesforce/apex/StudentPortalController.applyForJob';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { refreshApex } from '@salesforce/apex';
 
-const STUDENT_ID = 'a00g500000p5G0RAAU';
-
 export default class EligibleJobs extends LightningElement {
+    @api studentId;
 
     jobs;
     wiredResult;
 
-    @wire(getEligibleJobs, { studentId: STUDENT_ID })
+    @wire(getEligibleJobs, { studentId: '$studentId' })
     wiredJobs(result) {
         this.wiredResult = result;
         if (result.data) {
@@ -25,7 +24,7 @@ export default class EligibleJobs extends LightningElement {
 
         try {
             await applyForJob({
-                studentId: STUDENT_ID,
+                studentId: this.studentId,
                 jobId: jobId
             });
 

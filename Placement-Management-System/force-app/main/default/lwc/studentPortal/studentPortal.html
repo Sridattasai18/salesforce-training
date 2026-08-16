@@ -1,15 +1,24 @@
 <template>
-    <lightning-card title="Student Portal">
+    <lightning-card title="Apply for a Job">
         <div class="slds-p-around_medium">
+
+            <lightning-combobox
+                label="Select Student"
+                value={selectedStudentId}
+                options={studentOptions}
+                onchange={handleStudentChange}>
+            </lightning-combobox>
 
             <c-student-summary
                 student={student}>
             </c-student-summary>
 
-            <c-eligible-jobs>
+            <c-eligible-jobs
+                student-id={selectedStudentId}>
             </c-eligible-jobs>
 
-            <c-profile-form>
+            <c-profile-form
+                student-id={selectedStudentId}>
             </c-profile-form>
 
         </div>

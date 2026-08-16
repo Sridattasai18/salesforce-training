@@ -1,6 +1,15 @@
 public with sharing class StudentPortalController {
 
     @AuraEnabled(cacheable=true)
+    public static List<Student__c> getStudents() {
+        return [
+            SELECT Id, Name, Department__c, CGPA__c, Active_Backlogs__c
+            FROM Student__c
+            ORDER BY Name
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
     public static List<Job__c> getEligibleJobs(Id studentId) {
 
         Student__c student = [

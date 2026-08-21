@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prevent_Application_After_Closing_Date</fullName>
+    <active>true</active>
+    <errorConditionFormula>Job__r.Closing_Date__c &lt; TODAY()</errorConditionFormula>
+    <errorDisplayField>Job__c</errorDisplayField>
+    <errorMessage>Applications cannot be submitted after the job closing date.</errorMessage>
+</ValidationRule>

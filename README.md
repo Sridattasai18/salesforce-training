@@ -1,71 +1,54 @@
-# Salesforce Training - Bridge Program
+# Salesforce Training — Bridge Program
 
-This repository contains my 11-day Salesforce learning journey with daily training notes and a complete placement management project.
-
----
-
-## 📁 What's Inside
-
-### 📚 Bridge-Program/
-**Daily training notes and tasks (Day 1-11)**
-
-My day-by-day learning progression with code samples, notes, and screenshots for each day's topic.
-
-- **Day 1**: Data model basics (Student, Job, Application objects), SOQL, first trigger
-- **Day 2**: Collections, bulkification, handler pattern, service layer
-- **Day 3**: Validation rules, flows, declarative automation
-- **Day 4**: Lightning Web Components - placement dashboard
-- **Day 5**: Service architecture and Apex-LWC integration
-- **Day 6**: Enterprise trigger framework
-- **Day 7**: Performance optimization, analytics, bulk processing
-- **Day 8**: Asynchronous Apex (Queueable, Batch, Scheduled)
-- **Day 9**: Interactive student portal with job filtering
-- **Day 10**: Multi-component communication and Lightning Data Service
-- **Day 11**: REST API integration
+A 12-day hands-on Salesforce learning journey building a Placement Management System from scratch — starting with basic objects and ending with REST API integration, async processing, and source-controlled deployment.
 
 ---
 
-### 🚀 Placement-Management-System/
-**Combined project folder - All Days 1-11 integrated**
+## 📁 Repository Structure
 
-Complete Salesforce placement management system combining everything learned across all 11 days into a single production-ready project.
-
-**Components:**
-- 19 Apex classes
-- 3 triggers
-- 9 LWC components
-- 5 custom objects
-- REST API endpoints
-- Complete documentation
-
-**Deploy:**
-```bash
-cd Placement-Management-System
-sf org login web --alias MyOrg
-sf project deploy start
 ```
-
-See [QUICK-START.md](Placement-Management-System/QUICK-START.md) for setup guide.
-
----
-
-## 🚀 Quick Clone & Deploy
-
-```bash
-git clone https://github.com/Sridattasai18/salesforce-training.git
-cd salesforce-training/Placement-Management-System
-sf org login web --alias MyOrg
-sf project deploy start
+salesforce-training/
+├── Bridge-Program/                  # Daily training notes and exercises
+│   ├── Day-01/  →  Data model, triggers, SOQL
+│   ├── Day-02/  →  Collections, handler pattern, service layer
+│   ├── Day-03/  →  Validation rules, flows, declarative automation
+│   ├── Day-04/  →  Lightning Web Components — placement dashboard
+│   ├── Day-05/  →  Service architecture, Apex-LWC integration
+│   ├── Day-06/  →  Enterprise trigger framework
+│   ├── Day-07/  →  Performance, analytics, bulk processing
+│   ├── Day-08/  →  Async Apex (Queueable, Batch, Scheduled)
+│   ├── Day-09/  →  Interactive student portal with eligibility filtering
+│   ├── Day-10/  →  Multi-component communication, Lightning Data Service
+│   ├── Day-11/  →  REST API integration, Named Credentials, callouts
+│   └── Day-12/  →  Source-controlled deployment, Git workflow, PR process
+│
+└── Placement-Management-System/     # The actual project (standalone repo)
 ```
 
 ---
 
-## 📚 Documentation
+## 📚 Bridge Program
 
-**Placement-Management-System:**
-- [README.md](Placement-Management-System/README.md) - Complete project overview
-- [QUICK-START.md](Placement-Management-System/QUICK-START.md) - 5-minute setup
-- [API-REFERENCE.md](Placement-Management-System/API-REFERENCE.md) - REST API documentation
+Each day folder contains:
+- **Code** — Apex classes, triggers, LWC components for that day's topic
+- **Notes** — What was learned and why
+- **README** — Day overview and objectives
+- **Screenshots** — Where relevant
 
-**Bridge-Program:**  
-Each day folder contains notes, code samples, and screenshots for that day's learning.
+The code in each day reflects the state of the project *at that point in time*, showing how the system evolved from a simple trigger to a full integration-ready application.
+
+---
+
+## 🚀 Placement Management System
+
+The complete project lives in its own standalone repository:
+
+**[github.com/Sridattasai18/Placement-Management-System](https://github.com/Sridattasai18/Placement-Management-System)**
+
+It includes the full source, documentation, and deployment workflow for the system built across all 12 days.
+
+---
+
+## 🛠️ Tech Covered
+
+`Apex` · `SOQL` · `Triggers` · `Lightning Web Components` · `Flows` · `Queueable / Batch / Scheduled Apex` · `REST API` · `Named Credentials` · `HTTP Callouts` · `Git` · `Salesforce CLI`

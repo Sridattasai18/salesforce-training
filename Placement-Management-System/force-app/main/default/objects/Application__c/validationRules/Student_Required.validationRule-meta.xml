@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Student_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>ISBLANK(Student__c)</errorConditionFormula>
+    <errorDisplayField>Student__c</errorDisplayField>
+    <errorMessage>Student is required before creating an application.</errorMessage>
+</ValidationRule>
